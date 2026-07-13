@@ -1,9 +1,11 @@
 [
   {
-    "ts": "2026-07-13T10:19:09.512+09:00",
+    "ts": "2026-07-13T10:25:29.575+09:00",
     "yes24": {
       "econ_rank": 111,
       "mkt_rank": 9,
+      "web_rank": 1,
+      "uxui_rank": 1,
       "sales_index": 1830,
       "reviews": 0,
       "rating": null
