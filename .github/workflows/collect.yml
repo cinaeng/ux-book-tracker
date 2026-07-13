@@ -5,6 +5,15 @@ on:
     # 매일 KST 09:00 (= UTC 00:00)
     - cron: "0 0 * * *"
   workflow_dispatch: # 수동 실행 버튼
+  push:
+    branches: [main]
+    # 대시보드나 수집기를 고치면 곧바로 재배포한다.
+    # (이게 없으면 index.html을 커밋해도 Pages가 옛 버전을 계속 서빙한다)
+    # data/ 는 제외 — 수집 결과 커밋이 워크플로를 다시 부르지 않도록.
+    # ※ GITHUB_TOKEN 으로 한 push 는 원래 워크플로를 재트리거하지 않지만, 이중으로 막아둔다.
+    paths-ignore:
+      - "data/**"
+      - "README.md"
 
 permissions:
   contents: write
