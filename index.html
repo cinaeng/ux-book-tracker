@@ -22,9 +22,17 @@
   .loading { padding: 60px 0; text-align: center; color: #999; font-size: 14px; }
 
   .hdr { border-bottom: 2px solid #111; padding-bottom: 15px; margin-bottom: 20px; }
+  .hdr-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   .hdr h1 { margin: 0 0 5px; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
   .hdr .sub { font-size: 13px; color: #666; margin: 0; }
   .hdr .meta { font-size: 12px; color: #999; margin-top: 9px; }
+  .refresh {
+    flex: 0 0 auto; text-decoration: none; white-space: nowrap;
+    padding: 8px 15px; font-size: 12.5px; font-weight: 600;
+    color: #fff; background: #111; border-radius: 999px;
+    transition: background .12s, transform .12s;
+  }
+  .refresh:hover { background: #333; transform: translateY(-1px); }
 
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
   .tabs button {
@@ -108,6 +116,9 @@ const U = {
   y_product: "https://www.yes24.com/product/goods/193444437",
   y_mkt:     "https://www.yes24.com/product/category/bestseller?categoryNumber=001001025009&pageNumber=1&pageSize=100",
   y_econ:    "https://www.yes24.com/product/category/bestseller?categoryNumber=001001025&pageNumber=1&pageSize=100",
+  y_web:     "https://www.yes24.com/product/category/bestseller?categoryNumber=001001003020&pageNumber=1&pageSize=100",
+  y_uxui:    "https://www.yes24.com/product/category/bestseller?categoryNumber=001001003020004&pageNumber=1&pageSize=100",
+  refresh:   "https://github.com/cinaeng/ux-book-tracker/actions/workflows/collect.yml",
   k_product: "https://product.kyobobook.co.kr/detail/S000220493173",
   k_econ_w:  "https://store.kyobobook.co.kr/bestseller/online/weekly/domestic/13",
   k_econ_d:  "https://store.kyobobook.co.kr/bestseller/online/daily/domestic/13",
@@ -150,12 +161,20 @@ function render(H) {
   const y = cur.yes24 || {}, py = pre.yes24 || {};
   const ko = cur.kyobo_online || {}, pko = pre.kyobo_online || {};
   const kt = cur.kyobo_total || {}, pkt = pre.kyobo_total || {};
+  const km = cur.kyobo_meta || {}, pkm = pre.kyobo_meta || {};
 
   document.getElementById("root").innerHTML = `
 <div class="hdr">
-  <h1>${BOOK.title} — 서점 순위 트래커</h1>
-  <p class="sub">${BOOK.subtitle}</p>
-  <p class="meta">최종 수집 ${fmtTs(cur.ts)} · 출간 ${days}일차 · 매일 09시(KST) 자동 갱신</p>
+  <div class="hdr-row">
+    <div>
+      <h1>${BOOK.title} — 서점 순위 트래커</h1>
+      <p class="sub">${BOOK.subtitle}</p>
+      <p class="meta">최종 수집 ${fmtTs(cur.ts)} · 출간 ${days}일차 · 매일 09시(KST) 예스24·교보문고 자동 갱신</p>
+    </div>
+    <a class="refresh" href="${U.refresh}" target="_blank" rel="noopener" title="GitHub Actions에서 'Run workflow'를 눌러 지금 바로 갱신합니다">
+      ↻ 지금 갱신
+    </a>
+  </div>
 </div>
 
 <div class="tabs">
@@ -165,7 +184,9 @@ function render(H) {
 
 <div class="pane on" id="pane-yes24">
   <div class="cards">
-    ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈 종합 베스트", "#1a5fb4", true, U.y_mkt)}
+    ${rankCard(y.uxui_rank, py.uxui_rank, "UX/UI", "IT모바일 &gt; 웹사이트 &gt; UI/UX", "#27ae60", true, U.y_uxui)}
+    ${rankCard(y.web_rank, py.web_rank, "웹사이트", "IT모바일 &gt; 웹사이트", "#16a085", false, U.y_web)}
+    ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈", "#1a5fb4", false, U.y_mkt)}
     ${rankCard(y.econ_rank, py.econ_rank, "경제경영 종합", "경제경영 전체 베스트", "#c0392b", false, U.y_econ)}
     <a class="card" href="${U.y_product}" target="_blank" rel="noopener">
       <div class="lbl"><span class="dot" style="background:#e67e22"></span>판매지수</div>
@@ -187,9 +208,10 @@ function render(H) {
 
   <h2>수집 이력</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>날짜</th><th>마케팅/세일즈</th><th>경제경영 종합</th><th>판매지수</th><th>리뷰</th></tr></thead>
+    <thead><tr><th>날짜</th><th>UX/UI</th><th>웹사이트</th><th>마케팅/세일즈</th><th>경제경영 종합</th><th>판매지수</th><th>리뷰</th></tr></thead>
     <tbody>${[...H].reverse().map(h => `<tr>
-      <td>${fmtTs(h.ts)}</td><td>${cell(h.yes24?.mkt_rank)}</td><td>${cell(h.yes24?.econ_rank)}</td>
+      <td>${fmtTs(h.ts)}</td><td>${cell(h.yes24?.uxui_rank)}</td><td>${cell(h.yes24?.web_rank)}</td>
+      <td>${cell(h.yes24?.mkt_rank)}</td><td>${cell(h.yes24?.econ_rank)}</td>
       <td>${nf(h.yes24?.sales_index)}</td><td>${nf(h.yes24?.reviews)}</td></tr>`).join("")}
     </tbody>
   </table></div>
@@ -197,11 +219,15 @@ function render(H) {
   <div class="note">
     <b>순위 기준</b> — 예스24 베스트셀러는 <b>최근 7일간 판매량·주문 수</b>로 매일 1회 집계됩니다.
     판매지수와는 별개 지표라, 판매지수가 낮아도 순위는 높게 잡힐 수 있습니다.<br>
-    <b>읽는 법</b> — 모수가 작은 <b>마케팅/세일즈</b>가 마케팅 액션에 가장 민감합니다.
-    <b>경제경영 종합</b>은 100위권 진입이 실질 목표선입니다.
+    <b>읽는 법</b> — 이 책은 4개 분야에 동시 분류돼 있습니다.
+    모수가 작은 <b>UX/UI</b>·<b>웹사이트</b>는 홍보에 바로 쓸 수 있는 숫자가 나오고,
+    <b>마케팅/세일즈</b>는 마케팅 액션에 민감하게 반응합니다.
+    <b>경제경영 종합</b>은 모수가 커서 100위권 진입이 실질 목표선입니다.
   </div>
   <div class="links">
     <a href="${U.y_product}" target="_blank">상품 페이지 ↗</a>
+    <a href="${U.y_uxui}" target="_blank">UX/UI 베스트 ↗</a>
+    <a href="${U.y_web}" target="_blank">웹사이트 베스트 ↗</a>
     <a href="${U.y_mkt}" target="_blank">마케팅/세일즈 베스트 ↗</a>
     <a href="${U.y_econ}" target="_blank">경제경영 베스트 ↗</a>
   </div>
@@ -220,6 +246,11 @@ function render(H) {
       ${rankCard(ko.it_daily, pko.it_daily, "컴퓨터/IT · 일간", "온라인 일간 베스트 (~435위)", "#8e44ad", false, U.k_it_d)}
       ${rankCard(ko.website_cat, pko.website_cat, "웹사이트 카테고리", "카테고리 베스트 (24권)", "#16a085", false, U.k_website)}
       ${rankCard(ko.uxui_cat, pko.uxui_cat, "UX/UI 카테고리", "카테고리 베스트 (11권)", "#27ae60", false, U.k_uxui)}
+      <a class="card" href="${U.k_product}" target="_blank" rel="noopener">
+        <div class="lbl"><span class="dot" style="background:#7f8c8d"></span>리뷰 · 평점</div>
+        <div class="val">${nf(km.reviews)}<small>건</small>${deltaHtml(km.reviews, pkm.reviews, false)}</div>
+        <div class="sub2">Klover 평점 ${km.rating ?? "—"}</div>
+      </a>
     </div>
 
     <h2>온라인 주간 · 경제/경영 순위 추이 <span>(낮을수록 좋음)</span></h2>
@@ -227,14 +258,19 @@ function render(H) {
 
     <h2>수집 이력</h2>
     <div class="tablewrap"><table>
-      <thead><tr><th>날짜</th><th>경제/경영 주간</th><th>경제/경영 일간</th><th>컴퓨터/IT 일간</th><th>웹사이트</th><th>UX/UI</th></tr></thead>
+      <thead><tr><th>날짜</th><th>경제/경영 주간</th><th>경제/경영 일간</th><th>컴퓨터/IT 일간</th><th>웹사이트</th><th>UX/UI</th><th>리뷰</th></tr></thead>
       <tbody>${[...H].reverse().map(h => `<tr>
         <td>${fmtTs(h.ts)}</td><td>${cell(h.kyobo_online?.econ_weekly)}</td><td>${cell(h.kyobo_online?.econ_daily)}</td>
         <td>${cell(h.kyobo_online?.it_daily)}</td><td>${cell(h.kyobo_online?.website_cat)}</td>
-        <td>${cell(h.kyobo_online?.uxui_cat)}</td></tr>`).join("")}
+        <td>${cell(h.kyobo_online?.uxui_cat)}</td><td>${nf(h.kyobo_meta?.reviews)}</td></tr>`).join("")}
       </tbody>
     </table></div>
 
+    <div class="note warn">
+      <b>교보문고에는 판매지수가 없습니다.</b> 예스24 판매지수·알라딘 Sales Point에 해당하는 판매 지표를
+      교보는 공개하지 않습니다(상품 페이지 전체를 확인했습니다). 그래서 교보 탭은 <b>순위 + 리뷰·평점</b>만 추적합니다.
+      판매 선행지표가 필요하면 예스24 탭의 판매지수를 보세요.
+    </div>
     <div class="note">
       온라인 <b>주간</b> 경제/경영이 현재 유일하게 순위가 잡히는 목록입니다.
       일간 목록은 경제/경영이 991위, 컴퓨터/IT가 435위까지만 집계됩니다.
@@ -303,15 +339,22 @@ function render(H) {
   new Chart(document.getElementById("c_y_rank"), {
     type: "line",
     data: { labels, datasets: [
+      // 모수가 작은 니치 카테고리 — 왼쪽 축
+      { label: "UX/UI", data: H.map(h => h.yes24?.uxui_rank ?? null),
+        borderColor: "#27ae60", backgroundColor: "#27ae60", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
+      { label: "웹사이트", data: H.map(h => h.yes24?.web_rank ?? null),
+        borderColor: "#16a085", backgroundColor: "#16a085", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
       { label: "마케팅/세일즈", data: H.map(h => h.yes24?.mkt_rank ?? null),
         borderColor: "#1a5fb4", backgroundColor: "#1a5fb4", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
+      // 모수가 큰 대분류 — 스케일이 달라 오른쪽 축으로 분리
       { label: "경제경영 종합", data: H.map(h => h.yes24?.econ_rank ?? null),
-        borderColor: "#c0392b", backgroundColor: "#c0392b", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y1" }
+        borderColor: "#c0392b", backgroundColor: "#c0392b", borderDash: [5, 3],
+        tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y1" }
     ]},
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y:  { position: "left",  reverse: true, title: { display: true, text: "마케팅/세일즈" }, ticks: { precision: 0 } },
+        y:  { position: "left",  reverse: true, title: { display: true, text: "세부 카테고리" }, ticks: { precision: 0 } },
         y1: { position: "right", reverse: true, title: { display: true, text: "경제경영 종합" }, ticks: { precision: 0 }, grid: { drawOnChartArea: false } },
         x:  { ticks: { maxRotation: 0, autoSkip: true } }
       },
