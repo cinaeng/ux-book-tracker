@@ -24,6 +24,8 @@ const Y = {
     `https://www.yes24.com/product/category/bestseller?categoryNumber=${cat}&pageNumber=${page}&pageSize=100`,
   CAT_MKT: "001001025009", // 경제경영 > 마케팅/세일즈
   CAT_ECON: "001001025", // 경제경영 종합
+  CAT_WEB: "001001003020", // IT 모바일 > 웹사이트
+  CAT_UXUI: "001001003020004", // IT 모바일 > 웹사이트 > UI/UX
 };
 
 const K = {
@@ -101,36 +103,40 @@ function yes24RankInList(html, targetId, pageOffset = 0) {
 // ────────────────────────────────────────────────────────────
 // 예스24
 
+/** 카테고리 베스트셀러를 여러 페이지 훑어 절대 순위를 찾는다. 없으면 null. */
+async function yes24CategoryRank(categoryNumber, maxPages) {
+  for (let page = 1; page <= maxPages; page++) {
+    const html = await getHtml(Y.best(categoryNumber, page));
+    const rank = yes24RankInList(html, BOOK.yes24Id, (page - 1) * 100);
+    if (rank) return rank; // 이미 절대 순위
+  }
+  return null;
+}
+
 async function collectYes24() {
   const out = {
     econ_rank: null,
     mkt_rank: null,
+    web_rank: null,
+    uxui_rank: null,
     sales_index: null,
     reviews: 0,
     rating: null,
   };
 
-  // (1) 마케팅/세일즈 — 1~200위
-  for (let page = 1; page <= 2; page++) {
-    const html = await getHtml(Y.best(Y.CAT_MKT, page));
-    const rank = yes24RankInList(html, BOOK.yes24Id, (page - 1) * 100);
-    if (rank) {
-      out.mkt_rank = rank; // 이미 절대 순위
-      break;
-    }
-  }
+  // (1) 경제경영 계열
+  out.mkt_rank = await yes24CategoryRank(Y.CAT_MKT, 2); // 마케팅/세일즈 (1~200위)
   log("예스24 마케팅/세일즈:", out.mkt_rank ?? "권외");
 
-  // (2) 경제경영 종합 — 1~300위
-  for (let page = 1; page <= 3; page++) {
-    const html = await getHtml(Y.best(Y.CAT_ECON, page));
-    const rank = yes24RankInList(html, BOOK.yes24Id, (page - 1) * 100);
-    if (rank) {
-      out.econ_rank = rank;
-      break;
-    }
-  }
+  out.econ_rank = await yes24CategoryRank(Y.CAT_ECON, 3); // 경제경영 종합 (1~300위)
   log("예스24 경제경영 종합:", out.econ_rank ?? "권외");
+
+  // (2) IT/웹 계열 — 모수가 작아 1페이지면 충분
+  out.uxui_rank = await yes24CategoryRank(Y.CAT_UXUI, 1); // 웹사이트 > UI/UX
+  log("예스24 UI/UX:", out.uxui_rank ?? "권외");
+
+  out.web_rank = await yes24CategoryRank(Y.CAT_WEB, 1); // 웹사이트
+  log("예스24 웹사이트:", out.web_rank ?? "권외");
 
   // (3) 판매지수 · 리뷰 · 평점
   // 태그가 값 사이에 끼어 있으므로(<em>1,830</em> 등) 먼저 텍스트로 평탄화한다.
@@ -202,10 +208,25 @@ async function collectKyobo() {
     const badge = text.match(/주간베스트[\s\S]{0,30}?경제\/경영\s*([\d,]+)\s*위/);
     if (badge) meta.badge_rank = Number(badge[1].replace(/,/g, ""));
 
-    const rv = text.match(/\((\d+)개의 리뷰\)/);
+    // 리뷰 수: 상단 "(N개의 리뷰)" 또는 하단 "Klover 리뷰 (N)"
+    const rv =
+      text.match(/\((\d+)\s*개의 리뷰\)/) || text.match(/Klover\s*리뷰\s*\((\d+)\)/);
     if (rv) meta.reviews = Number(rv[1]);
 
-    log("교보 뱃지(온라인 주간 경제/경영):", meta.badge_rank ?? "표시 없음");
+    // 평점: 리뷰 수 바로 앞의 소수점 점수 (예: "9.4\n(102개의 리뷰)"). 리뷰 0건이면 0.0 → null 처리
+    const rt = text.match(/([\d.]+)\s*\n?\s*\(\d+\s*개의 리뷰\)/);
+    if (rt) {
+      const v = Number(rt[1]);
+      meta.rating = meta.reviews > 0 && v > 0 ? v : null;
+    }
+
+    // ⚠️ 교보문고는 판매지수를 공개하지 않는다 (예스24 판매지수 / 알라딘 Sales Point 같은 지표 없음).
+    //    페이지 전체를 확인했으나 존재하지 않으므로 수집 대상이 아니다.
+
+    log(
+      "교보 뱃지(온라인 주간 경제/경영):", meta.badge_rank ?? "표시 없음",
+      "· 리뷰:", meta.reviews, "· 평점:", meta.rating ?? "—"
+    );
 
     // (2) 온라인 주간 경제/경영 — 뱃지로 페이지를 추정해 그 주변만 확인 (20개/페이지, per 금지)
     if (meta.badge_rank) {
