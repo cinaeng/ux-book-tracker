@@ -73,28 +73,29 @@ function htmlToText(html) {
 }
 
 /**
- * 예스24 베스트셀러 목록 HTML에서 각 항목(<li>)의 "대표 상품번호"를 순서대로 뽑는다.
+ * 예스24 베스트셀러 목록에서 대상 도서의 순위를 읽는다. **절대 순위**를 반환한다.
  *
- * 주의: 한 항목 안에는 대표 상품 링크 말고도
- *   "관련상품 : eBook 17,360원", "중고상품 62개" 같은 **다른 상품 링크**가 섞여 있다.
- * 그래서 단순히 등장하는 goods 링크를 전부 세면 순위가 부풀려진다(실제 9위 → 14위로 오판).
- * 항목 경계(<li)로 먼저 쪼갠 뒤, 각 항목의 **첫 번째** goods 링크만 대표로 삼는다.
+ * 세지 말고 사이트가 찍어둔 값을 읽는다.
+ * 각 항목은 `<li data-goods-no="193444437">` 이고, 그 안에 `<em class="ico rank">9</em>` 로
+ * 순위가 직접 박혀 있다. 이 마커는 페이지가 넘어가도 절대 순위라 offset 계산이 필요 없다.
+ *
+ * ⚠️ goods 링크를 세는 방식은 쓰면 안 된다.
+ *   항목 하나가 중첩 <li> 4개와 goods 링크 4~5개(관련상품/eBook/중고)를 품고 있어서
+ *   세는 순간 순위가 부풀려진다 (실제 9위 → 14위로 오판했던 원인).
  */
-function yes24RankInList(html, targetId) {
-  // 베스트셀러 목록 영역으로 범위를 좁힌다 (헤더 광고·최근본상품 등 오염 방지)
-  const start = html.indexOf("yesBestList");
-  if (start === -1) return null;
-  const region = html.slice(start);
+function yes24RankInList(html, targetId, pageOffset = 0) {
+  const at = html.indexOf(`data-goods-no="${targetId}"`);
+  if (at === -1) return null;
 
-  const ids = [];
-  for (const chunk of region.split(/<li[\s>]/i).slice(1)) {
-    const m = chunk.match(/\/product\/goods\/(\d+)/);
-    if (!m) continue;
-    if (ids[ids.length - 1] !== m[1]) ids.push(m[1]); // 중첩 li 대비 연속 중복 제거
-  }
+  // (1) 항목 블록 안의 순위 마커를 그대로 읽는다 — 가장 신뢰도 높음
+  const block = html.slice(at, at + 3000);
+  const marker = block.match(/class="[^"]*\brank\b[^"]*"[^>]*>\s*(\d+)\s*</);
+  if (marker) return Number(marker[1]);
 
+  // (2) 마커를 못 찾으면 data-goods-no 등장 순서로 대체 (중첩 li에는 이 속성이 없다)
+  const ids = [...html.matchAll(/data-goods-no="(\d+)"/g)].map((m) => m[1]);
   const idx = ids.indexOf(targetId);
-  return idx === -1 ? null : idx + 1;
+  return idx === -1 ? null : pageOffset + idx + 1;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -112,9 +113,9 @@ async function collectYes24() {
   // (1) 마케팅/세일즈 — 1~200위
   for (let page = 1; page <= 2; page++) {
     const html = await getHtml(Y.best(Y.CAT_MKT, page));
-    const pos = yes24RankInList(html, BOOK.yes24Id);
-    if (pos) {
-      out.mkt_rank = (page - 1) * 100 + pos;
+    const rank = yes24RankInList(html, BOOK.yes24Id, (page - 1) * 100);
+    if (rank) {
+      out.mkt_rank = rank; // 이미 절대 순위
       break;
     }
   }
@@ -123,9 +124,9 @@ async function collectYes24() {
   // (2) 경제경영 종합 — 1~300위
   for (let page = 1; page <= 3; page++) {
     const html = await getHtml(Y.best(Y.CAT_ECON, page));
-    const pos = yes24RankInList(html, BOOK.yes24Id);
-    if (pos) {
-      out.econ_rank = (page - 1) * 100 + pos;
+    const rank = yes24RankInList(html, BOOK.yes24Id, (page - 1) * 100);
+    if (rank) {
+      out.econ_rank = rank;
       break;
     }
   }
