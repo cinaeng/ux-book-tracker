@@ -24,8 +24,10 @@ permissions:
   pages: write
   id-token: write
 
+# 두 실행이 겹치면 data/history.json 을 동시에 커밋하려다 push가 거부된다.
+# 워크플로 전체를 한 번에 하나만 돌도록 직렬화한다 (취소하지 않고 큐에 세운다).
 concurrency:
-  group: pages
+  group: collect-and-deploy
   cancel-in-progress: false
 
 jobs:
@@ -51,12 +53,28 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/history.json
+
           if git diff --staged --quiet; then
             echo "변경 없음"
-          else
-            git commit -m "순위 수집: $(TZ=Asia/Seoul date '+%Y-%m-%d')"
-            git push
+            exit 0
           fi
+
+          git commit -m "순위 수집: $(TZ=Asia/Seoul date '+%Y-%m-%d')"
+
+          # 다른 커밋이 그 사이에 들어오면 push가 거부된다(! [rejected] ... fetch first).
+          # rebase 후 재시도한다. 3번까지.
+          for i in 1 2 3; do
+            if git push; then
+              echo "push 성공 (시도 $i)"
+              exit 0
+            fi
+            echo "push 거부됨 — rebase 후 재시도 ($i/3)"
+            git pull --rebase --autostash origin main || exit 1
+            sleep 3
+          done
+
+          echo "3회 시도 후에도 push 실패"
+          exit 1
 
       - name: Pages 아티팩트 업로드
         uses: actions/upload-pages-artifact@v3
