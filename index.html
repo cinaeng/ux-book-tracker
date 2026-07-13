@@ -230,11 +230,11 @@ function render(H) {
     <div>
       <h1>${BOOK.title} — 서점 순위 트래커</h1>
       <p class="sub">${BOOK.subtitle}</p>
-      <p class="meta">최종 수집 ${fmtTs(cur.ts)} · 출간 ${days}일차 · 매일 11시(KST) 예스24·교보문고 자동 갱신</p>
+      <p class="meta">최종 수집 ${fmtTs(cur.ts)} · 출간 ${days}일차 · 매일 새벽 4시(KST) 예스24·교보문고 자동 갱신</p>
     </div>
     <div class="hdr-actions">
-      <button class="refresh" id="btnRefresh" title="GitHub Actions에서 'Run workflow'를 눌러 주세요. 새 데이터가 들어오면 이 페이지가 자동으로 갱신됩니다.">
-        <span id="btnIcon">↻</span><span id="btnText">지금 갱신</span>
+      <button class="refresh" id="btnRefresh" title="최신 수집 결과를 다시 불러옵니다. 수집 자체는 매일 새벽 4시에 자동 실행됩니다.">
+        <span id="btnIcon">↻</span><span id="btnText">새로고침</span>
       </button>
       <div class="lastsync">최근 갱신 <b id="lastSync">${fmtFull(cur.ts)}</b></div>
     </div>
@@ -389,59 +389,65 @@ function render(H) {
   </div>
 </div>
 
-<div class="foot">GitHub Actions로 매일 자동 수집됩니다. · 인터파크 도서는 2024년 서비스 종료로 제외</div>`;
+<div class="foot">
+  매일 새벽 4시(KST) GitHub Actions가 자동 수집합니다. 위 <b>새로고침</b>은 최신 수집 결과를 다시 읽어옵니다.
+  지금 당장 다시 수집해야 한다면 <a href="${U.refresh}" target="_blank" rel="noopener">Actions에서 수동 실행</a>하세요.
+  · 인터파크 도서는 2024년 서비스 종료로 제외
+</div>`;
 
-  // ── 지금 갱신 ──
-  // 정적 페이지라 워크플로를 직접 실행할 수는 없다. 대신 Actions 페이지를 새 탭으로 열어주고,
-  // 이 페이지는 history.json을 폴링하며 새 데이터가 커밋되면 자동으로 다시 그린다.
+  // ── 새로고침 ──
+  // 이 대시보드는 정적 페이지(GitHub Pages)라, 여기서 수집 워크플로를 직접 실행할 수는 없다.
+  // 실행하려면 GitHub 토큰이 필요한데 공개 페이지에 토큰을 심으면 누구나 저장소에 쓸 수 있게 된다.
+  // 그래서 이 버튼은 "최신 수집 결과를 다시 읽어오는" 역할만 한다.
+  // 수집 자체는 매일 새벽 4시(KST) GitHub Actions가 자동으로 돌린다.
   const btn = document.getElementById("btnRefresh");
-  const btnIcon = document.getElementById("btnIcon");
   const btnText = document.getElementById("btnText");
-  const baselineTs = cur.ts;
 
-  btn.onclick = () => {
-    window.open(U.refresh, "_blank", "noopener");
-
-    const started = Date.now();
+  btn.onclick = async () => {
+    const icon = document.getElementById("btnIcon");
     btn.disabled = true;
     btn.classList.remove("done");
-    btnIcon.outerHTML = `<span class="spinner" id="btnIcon"></span>`;
+    icon.outerHTML = `<span class="spinner" id="btnIcon"></span>`;
+    btnText.textContent = "불러오는 중";
 
-    const tick = setInterval(() => {
-      const s = Math.floor((Date.now() - started) / 1000);
-      btnText.textContent = `대기 중 ${s}초`;
-    }, 1000);
-    btnText.textContent = "대기 중 0초";
-
-    const stop = (ok) => {
-      clearInterval(tick);
-      clearInterval(poll);
-      const icon = document.getElementById("btnIcon");
-      if (ok) {
-        btn.classList.add("done");
-        icon.outerHTML = `<span id="btnIcon">✓</span>`;
-        btnText.textContent = "갱신 완료";
-      } else {
-        icon.outerHTML = `<span id="btnIcon">↻</span>`;
-        btnText.textContent = "다시 시도";
+    const finish = (msg, ok) => {
+      const ic = document.getElementById("btnIcon");
+      ic.outerHTML = `<span id="btnIcon">${ok ? "✓" : "↻"}</span>`;
+      btn.classList.toggle("done", ok);
+      btnText.textContent = msg;
+      // 잠시 뒤 기본 상태로 되돌린다
+      setTimeout(() => {
+        const i2 = document.getElementById("btnIcon");
+        if (i2) i2.textContent = "↻";
+        btn.classList.remove("done");
+        btnText.textContent = "새로고침";
         btn.disabled = false;
-      }
+      }, 2000);
     };
 
-    const poll = setInterval(async () => {
-      // 5분 지나면 포기 (워크플로를 실행하지 않았을 수 있다)
-      if (Date.now() - started > 5 * 60 * 1000) return stop(false);
-      try {
-        const r = await fetch("./data/history.json?t=" + Date.now(), { cache: "no-store" });
-        if (!r.ok) return;
-        const fresh = await r.json();
-        const newest = fresh[fresh.length - 1];
-        if (newest && newest.ts !== baselineTs) {
-          stop(true);
-          setTimeout(() => render(fresh), 600); // 새 데이터로 다시 그린다
-        }
-      } catch { /* 네트워크 일시 오류는 무시하고 계속 폴링 */ }
-    }, 5000);
+    try {
+      const r = await fetch("./data/history.json?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      const fresh = await r.json();
+      const changed = fresh[fresh.length - 1]?.ts !== cur.ts;
+      render(fresh); // 항상 최신 데이터로 다시 그린다 (버튼 상태도 함께 초기화됨)
+      // render()가 버튼을 새로 만들었으므로, 결과 표시는 새 버튼에 적용한다
+      const nb = document.getElementById("btnRefresh");
+      const nt = document.getElementById("btnText");
+      const ni = document.getElementById("btnIcon");
+      if (nb && nt && ni) {
+        nb.classList.toggle("done", changed);
+        ni.textContent = changed ? "✓" : "✓";
+        nt.textContent = changed ? "갱신됨" : "최신 상태";
+        setTimeout(() => {
+          nb.classList.remove("done");
+          ni.textContent = "↻";
+          nt.textContent = "새로고침";
+        }, 2000);
+      }
+    } catch (e) {
+      finish("실패 — 재시도", false);
+    }
   };
 
   // 탭
