@@ -73,21 +73,26 @@ function htmlToText(html) {
 }
 
 /**
- * 예스24 베스트셀러 목록 HTML에서 상품번호를 등장 순서대로 뽑는다.
- * 한 항목이 같은 링크를 여러 번 갖고 있으므로 연속 중복을 제거하면 곧 항목 순서가 된다.
+ * 예스24 베스트셀러 목록 HTML에서 각 항목(<li>)의 "대표 상품번호"를 순서대로 뽑는다.
+ *
+ * 주의: 한 항목 안에는 대표 상품 링크 말고도
+ *   "관련상품 : eBook 17,360원", "중고상품 62개" 같은 **다른 상품 링크**가 섞여 있다.
+ * 그래서 단순히 등장하는 goods 링크를 전부 세면 순위가 부풀려진다(실제 9위 → 14위로 오판).
+ * 항목 경계(<li)로 먼저 쪼갠 뒤, 각 항목의 **첫 번째** goods 링크만 대표로 삼는다.
  */
 function yes24RankInList(html, targetId) {
-  // 베스트셀러 목록 영역으로 범위를 좁힌다 (광고·최근본상품 등 오염 방지)
+  // 베스트셀러 목록 영역으로 범위를 좁힌다 (헤더 광고·최근본상품 등 오염 방지)
   const start = html.indexOf("yesBestList");
-  const region = start === -1 ? html : html.slice(start);
+  if (start === -1) return null;
+  const region = html.slice(start);
 
   const ids = [];
-  const re = /\/product\/goods\/(\d+)/g;
-  let m;
-  while ((m = re.exec(region)) !== null) {
-    const id = m[1];
-    if (ids[ids.length - 1] !== id) ids.push(id); // 연속 중복 제거
+  for (const chunk of region.split(/<li[\s>]/i).slice(1)) {
+    const m = chunk.match(/\/product\/goods\/(\d+)/);
+    if (!m) continue;
+    if (ids[ids.length - 1] !== m[1]) ids.push(m[1]); // 중첩 li 대비 연속 중복 제거
   }
+
   const idx = ids.indexOf(targetId);
   return idx === -1 ? null : idx + 1;
 }
