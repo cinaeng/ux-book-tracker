@@ -26,13 +26,25 @@
   .hdr h1 { margin: 0 0 5px; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
   .hdr .sub { font-size: 13px; color: #666; margin: 0; }
   .hdr .meta { font-size: 12px; color: #999; margin-top: 9px; }
+  .hdr-actions { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
   .refresh {
-    flex: 0 0 auto; text-decoration: none; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 7px;
+    text-decoration: none; white-space: nowrap; cursor: pointer;
     padding: 8px 15px; font-size: 12.5px; font-weight: 600;
-    color: #fff; background: #111; border-radius: 999px;
-    transition: background .12s, transform .12s;
+    color: #fff; background: #111; border: none; border-radius: 999px;
+    font-family: inherit; transition: background .12s, transform .12s;
   }
-  .refresh:hover { background: #333; transform: translateY(-1px); }
+  .refresh:hover:not(:disabled) { background: #333; transform: translateY(-1px); }
+  .refresh:disabled { background: #6b6b6b; cursor: default; }
+  .refresh.done { background: #0a7f3f; }
+  .spinner {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+    animation: spin .7s linear infinite; flex: 0 0 auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .lastsync { font-size: 11px; color: #999; white-space: nowrap; }
+  .lastsync b { color: #555; font-weight: 600; }
 
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
   .tabs button {
@@ -148,6 +160,11 @@ const fmtTs = ts => {
   const d = new Date(ts), p = n => String(n).padStart(2, "0");
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}`;
 };
+// 최근 갱신 표시용 — 날짜 + 시각
+const fmtFull = ts => {
+  const d = new Date(ts), p = n => String(n).padStart(2, "0");
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
 const deltaHtml = (c, p, lowerBetter) => {
   if (c == null || p == null || c === p) return "";
   const diff = c - p, improved = lowerBetter ? diff < 0 : diff > 0;
@@ -167,7 +184,15 @@ function rankCard(val, prevVal, label, sub, color, hero, href) {
     : `<div class="${cls}">${inner}</div>`;
 }
 
+// 갱신 시 다시 그리므로, 기존 차트를 파기하지 않으면 Chart.js가 "Canvas is already in use"로 실패한다.
+let charts = [];
+function resetCharts() {
+  charts.forEach(c => c.destroy());
+  charts = [];
+}
+
 function render(H) {
+  resetCharts();
   const cur = H[H.length - 1];
   const pre = H.length > 1 ? H[H.length - 2] : {};
   const days = Math.floor((new Date(cur.ts) - new Date(BOOK.pubdate + "T00:00:00+09:00")) / 864e5);
@@ -185,9 +210,12 @@ function render(H) {
       <p class="sub">${BOOK.subtitle}</p>
       <p class="meta">최종 수집 ${fmtTs(cur.ts)} · 출간 ${days}일차 · 매일 09시(KST) 예스24·교보문고 자동 갱신</p>
     </div>
-    <a class="refresh" href="${U.refresh}" target="_blank" rel="noopener" title="GitHub Actions에서 'Run workflow'를 눌러 지금 바로 갱신합니다">
-      ↻ 지금 갱신
-    </a>
+    <div class="hdr-actions">
+      <button class="refresh" id="btnRefresh" title="GitHub Actions에서 'Run workflow'를 눌러 주세요. 새 데이터가 들어오면 이 페이지가 자동으로 갱신됩니다.">
+        <span id="btnIcon">↻</span><span id="btnText">지금 갱신</span>
+      </button>
+      <div class="lastsync">최근 갱신 <b id="lastSync">${fmtFull(cur.ts)}</b></div>
+    </div>
   </div>
 </div>
 
@@ -339,6 +367,59 @@ function render(H) {
 
 <div class="foot">GitHub Actions로 매일 자동 수집됩니다. · 인터파크 도서는 2024년 서비스 종료로 제외</div>`;
 
+  // ── 지금 갱신 ──
+  // 정적 페이지라 워크플로를 직접 실행할 수는 없다. 대신 Actions 페이지를 새 탭으로 열어주고,
+  // 이 페이지는 history.json을 폴링하며 새 데이터가 커밋되면 자동으로 다시 그린다.
+  const btn = document.getElementById("btnRefresh");
+  const btnIcon = document.getElementById("btnIcon");
+  const btnText = document.getElementById("btnText");
+  const baselineTs = cur.ts;
+
+  btn.onclick = () => {
+    window.open(U.refresh, "_blank", "noopener");
+
+    const started = Date.now();
+    btn.disabled = true;
+    btn.classList.remove("done");
+    btnIcon.outerHTML = `<span class="spinner" id="btnIcon"></span>`;
+
+    const tick = setInterval(() => {
+      const s = Math.floor((Date.now() - started) / 1000);
+      btnText.textContent = `대기 중 ${s}초`;
+    }, 1000);
+    btnText.textContent = "대기 중 0초";
+
+    const stop = (ok) => {
+      clearInterval(tick);
+      clearInterval(poll);
+      const icon = document.getElementById("btnIcon");
+      if (ok) {
+        btn.classList.add("done");
+        icon.outerHTML = `<span id="btnIcon">✓</span>`;
+        btnText.textContent = "갱신 완료";
+      } else {
+        icon.outerHTML = `<span id="btnIcon">↻</span>`;
+        btnText.textContent = "다시 시도";
+        btn.disabled = false;
+      }
+    };
+
+    const poll = setInterval(async () => {
+      // 5분 지나면 포기 (워크플로를 실행하지 않았을 수 있다)
+      if (Date.now() - started > 5 * 60 * 1000) return stop(false);
+      try {
+        const r = await fetch("./data/history.json?t=" + Date.now(), { cache: "no-store" });
+        if (!r.ok) return;
+        const fresh = await r.json();
+        const newest = fresh[fresh.length - 1];
+        if (newest && newest.ts !== baselineTs) {
+          stop(true);
+          setTimeout(() => render(fresh), 600); // 새 데이터로 다시 그린다
+        }
+      } catch { /* 네트워크 일시 오류는 무시하고 계속 폴링 */ }
+    }, 5000);
+  };
+
   // 탭
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on"));
@@ -363,7 +444,7 @@ function render(H) {
     plugins: { legend: { display: false } }
   });
 
-  new Chart(document.getElementById("c_y_rank"), {
+  charts.push(new Chart(document.getElementById("c_y_rank"), {
     type: "line",
     data: { labels, datasets: [
       // 모수가 작은 니치 카테고리 — 왼쪽 축
@@ -387,21 +468,21 @@ function render(H) {
       },
       plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } }
     }
-  });
+  }));
 
-  new Chart(document.getElementById("c_y_si"), {
+  charts.push(new Chart(document.getElementById("c_y_si"), {
     type: "line",
     data: { labels, datasets: [{ label: "판매지수", data: H.map(h => h.yes24?.sales_index ?? null),
       borderColor: "#e67e22", backgroundColor: "rgba(230,126,34,.12)", fill: true, tension: .25, spanGaps: true, pointRadius: 3.5 }] },
     options: base("판매지수", false)
-  });
+  }));
 
-  new Chart(document.getElementById("c_k_rank"), {
+  charts.push(new Chart(document.getElementById("c_k_rank"), {
     type: "line",
     data: { labels, datasets: [{ label: "경제/경영 주간", data: H.map(h => h.kyobo_online?.econ_weekly ?? null),
       borderColor: "#c0392b", backgroundColor: "rgba(192,57,43,.12)", fill: true, tension: .25, spanGaps: true, pointRadius: 3.5 }] },
     options: base("순위", true)
-  });
+  }));
 }
 
 fetch("./data/history.json?t=" + Date.now())
