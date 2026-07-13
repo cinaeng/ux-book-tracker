@@ -1,0 +1,28 @@
+[
+  {
+    "ts": "2026-07-13T07:00:00+09:00",
+    "yes24": {
+      "econ_rank": 111,
+      "mkt_rank": 9,
+      "sales_index": 1830,
+      "reviews": 0,
+      "rating": null
+    },
+    "kyobo_online": {
+      "econ_weekly": 616,
+      "econ_daily": null,
+      "it_daily": null,
+      "website_cat": null,
+      "uxui_cat": null
+    },
+    "kyobo_total": {
+      "econ_weekly": null,
+      "tech_weekly": null
+    },
+    "kyobo_meta": {
+      "badge_rank": 618,
+      "reviews": 0,
+      "rating": null
+    }
+  }
+]
