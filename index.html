@@ -80,6 +80,20 @@
   .delta { font-size: 12px; font-weight: 700; margin-left: 6px; }
   .up { color: #0a7f3f; } .down { color: #c92a2a; }
 
+  /* 순위(박스)와 구분되는 보조 지표 — 텍스트 한 줄 */
+  .metrics {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
+    margin: -14px 0 26px; padding: 0 2px;
+    font-size: 13px; color: #666;
+  }
+  .metric { display: inline-flex; align-items: baseline; gap: 6px; text-decoration: none; color: inherit; }
+  a.metric:hover .mlbl, a.metric:hover b { color: #1a5fb4; }
+  .metric .mlbl { color: #999; font-size: 12px; }
+  .metric b { font-size: 15px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.2px; }
+  .metric .mnote { color: #aaa; font-size: 11.5px; }
+  .metric.na-metric b { color: #bbb; }
+  .msep { color: #ddd; }
+
   h2 { font-size: 13.5px; font-weight: 700; margin: 26px 0 12px; padding-bottom: 7px; border-bottom: 1px solid #e6e6e4; }
   h2 span { font-weight: 400; color: #999; font-size: 12px; }
   .panel { background: #fff; border: 1px solid #e4e4e2; border-radius: 12px; padding: 16px; }
@@ -184,19 +198,23 @@ function render(H) {
 
 <div class="pane on" id="pane-yes24">
   <div class="cards">
-    ${rankCard(y.uxui_rank, py.uxui_rank, "UX/UI", "IT모바일 &gt; 웹사이트 &gt; UI/UX", "#27ae60", true, U.y_uxui)}
-    ${rankCard(y.web_rank, py.web_rank, "웹사이트", "IT모바일 &gt; 웹사이트", "#16a085", false, U.y_web)}
-    ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈", "#1a5fb4", false, U.y_mkt)}
     ${rankCard(y.econ_rank, py.econ_rank, "경제경영 종합", "경제경영 전체 베스트", "#c0392b", false, U.y_econ)}
-    <a class="card" href="${U.y_product}" target="_blank" rel="noopener">
-      <div class="lbl"><span class="dot" style="background:#e67e22"></span>판매지수</div>
-      <div class="val">${nf(y.sales_index)}${deltaHtml(y.sales_index, py.sales_index, false)}</div>
-      <div class="sub2">예스24 판매 선행지표</div>
+    ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈", "#1a5fb4", false, U.y_mkt)}
+    ${rankCard(y.web_rank, py.web_rank, "웹사이트", "IT모바일 &gt; 웹사이트", "#16a085", false, U.y_web)}
+    ${rankCard(y.uxui_rank, py.uxui_rank, "UX/UI", "IT모바일 &gt; 웹사이트 &gt; UI/UX", "#27ae60", true, U.y_uxui)}
+  </div>
+
+  <div class="metrics">
+    <a class="metric" href="${U.y_product}" target="_blank" rel="noopener">
+      <span class="mlbl">판매지수</span>
+      <b>${nf(y.sales_index)}</b>${deltaHtml(y.sales_index, py.sales_index, false)}
+      <span class="mnote">판매 선행지표</span>
     </a>
-    <a class="card" href="${U.y_product}?ReviewYn=Y" target="_blank" rel="noopener">
-      <div class="lbl"><span class="dot" style="background:#7f8c8d"></span>리뷰 · 평점</div>
-      <div class="val">${nf(y.reviews)}<small>건</small>${deltaHtml(y.reviews, py.reviews, false)}</div>
-      <div class="sub2">평점 ${y.rating ?? "—"}</div>
+    <span class="msep">·</span>
+    <a class="metric" href="${U.y_product}?ReviewYn=Y" target="_blank" rel="noopener">
+      <span class="mlbl">리뷰</span>
+      <b>${nf(y.reviews)}건</b>${deltaHtml(y.reviews, py.reviews, false)}
+      <span class="mnote">평점 ${y.rating ?? "—"}</span>
     </a>
   </div>
 
@@ -246,11 +264,20 @@ function render(H) {
       ${rankCard(ko.it_daily, pko.it_daily, "컴퓨터/IT · 일간", "온라인 일간 베스트 (~435위)", "#8e44ad", false, U.k_it_d)}
       ${rankCard(ko.website_cat, pko.website_cat, "웹사이트 카테고리", "카테고리 베스트 (24권)", "#16a085", false, U.k_website)}
       ${rankCard(ko.uxui_cat, pko.uxui_cat, "UX/UI 카테고리", "카테고리 베스트 (11권)", "#27ae60", false, U.k_uxui)}
-      <a class="card" href="${U.k_product}" target="_blank" rel="noopener">
-        <div class="lbl"><span class="dot" style="background:#7f8c8d"></span>리뷰 · 평점</div>
-        <div class="val">${nf(km.reviews)}<small>건</small>${deltaHtml(km.reviews, pkm.reviews, false)}</div>
-        <div class="sub2">Klover 평점 ${km.rating ?? "—"}</div>
+    </div>
+
+    <div class="metrics">
+      <a class="metric" href="${U.k_product}" target="_blank" rel="noopener">
+        <span class="mlbl">Klover 리뷰</span>
+        <b>${nf(km.reviews)}건</b>${deltaHtml(km.reviews, pkm.reviews, false)}
+        <span class="mnote">평점 ${km.rating ?? "—"}</span>
       </a>
+      <span class="msep">·</span>
+      <span class="metric na-metric">
+        <span class="mlbl">판매지수</span>
+        <b>—</b>
+        <span class="mnote">교보문고는 미공개</span>
+      </span>
     </div>
 
     <h2>온라인 주간 · 경제/경영 순위 추이 <span>(낮을수록 좋음)</span></h2>
