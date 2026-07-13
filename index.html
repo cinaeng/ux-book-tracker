@@ -254,10 +254,10 @@ function render(H) {
 
   <h2>수집 이력</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>날짜</th><th>UX/UI</th><th>웹사이트</th><th>마케팅/세일즈</th><th>경제경영 종합</th><th>판매지수</th><th>리뷰</th></tr></thead>
+    <thead><tr><th>날짜</th><th>경제경영 종합</th><th>마케팅/세일즈</th><th>웹사이트</th><th>UX/UI</th><th>판매지수</th><th>리뷰</th></tr></thead>
     <tbody>${[...H].reverse().map(h => `<tr>
-      <td>${fmtTs(h.ts)}</td><td>${cell(h.yes24?.uxui_rank)}</td><td>${cell(h.yes24?.web_rank)}</td>
-      <td>${cell(h.yes24?.mkt_rank)}</td><td>${cell(h.yes24?.econ_rank)}</td>
+      <td>${fmtTs(h.ts)}</td><td>${cell(h.yes24?.econ_rank)}</td><td>${cell(h.yes24?.mkt_rank)}</td>
+      <td>${cell(h.yes24?.web_rank)}</td><td>${cell(h.yes24?.uxui_rank)}</td>
       <td>${nf(h.yes24?.sales_index)}</td><td>${nf(h.yes24?.reviews)}</td></tr>`).join("")}
     </tbody>
   </table></div>
@@ -446,18 +446,19 @@ function render(H) {
 
   charts.push(new Chart(document.getElementById("c_y_rank"), {
     type: "line",
+    // 범례 순서는 위쪽 카드 순서와 동일하게 맞춘다: 경제경영 종합 → 마케팅/세일즈 → 웹사이트 → UX/UI
     data: { labels, datasets: [
-      // 모수가 작은 니치 카테고리 — 왼쪽 축
-      { label: "UX/UI", data: H.map(h => h.yes24?.uxui_rank ?? null),
-        borderColor: "#27ae60", backgroundColor: "#27ae60", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
-      { label: "웹사이트", data: H.map(h => h.yes24?.web_rank ?? null),
-        borderColor: "#16a085", backgroundColor: "#16a085", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
-      { label: "마케팅/세일즈", data: H.map(h => h.yes24?.mkt_rank ?? null),
-        borderColor: "#1a5fb4", backgroundColor: "#1a5fb4", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
       // 모수가 큰 대분류 — 스케일이 달라 오른쪽 축으로 분리
       { label: "경제경영 종합", data: H.map(h => h.yes24?.econ_rank ?? null),
         borderColor: "#c0392b", backgroundColor: "#c0392b", borderDash: [5, 3],
-        tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y1" }
+        tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y1" },
+      // 모수가 작은 니치 카테고리 — 왼쪽 축
+      { label: "마케팅/세일즈", data: H.map(h => h.yes24?.mkt_rank ?? null),
+        borderColor: "#1a5fb4", backgroundColor: "#1a5fb4", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
+      { label: "웹사이트", data: H.map(h => h.yes24?.web_rank ?? null),
+        borderColor: "#16a085", backgroundColor: "#16a085", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
+      { label: "UX/UI", data: H.map(h => h.yes24?.uxui_rank ?? null),
+        borderColor: "#27ae60", backgroundColor: "#27ae60", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" }
     ]},
     options: {
       responsive: true, maintainAspectRatio: false,
