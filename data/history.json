@@ -26,5 +26,33 @@
       "reviews": 0,
       "rating": null
     }
+  },
+  {
+    "ts": "2026-07-14T06:22:25.894+09:00",
+    "yes24": {
+      "econ_rank": 90,
+      "mkt_rank": 6,
+      "web_rank": 1,
+      "uxui_rank": 1,
+      "sales_index": 2250,
+      "reviews": 2,
+      "rating": 10
+    },
+    "kyobo_online": {
+      "econ_weekly": 506,
+      "econ_daily": null,
+      "it_daily": null,
+      "website_cat": null,
+      "uxui_cat": null
+    },
+    "kyobo_total": {
+      "econ_weekly": null,
+      "tech_weekly": null
+    },
+    "kyobo_meta": {
+      "badge_rank": 508,
+      "reviews": 0,
+      "rating": null
+    }
   }
 ]
