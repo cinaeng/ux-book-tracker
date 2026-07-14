@@ -166,6 +166,8 @@ const U = {
   y_econ:    "https://www.yes24.com/product/category/bestseller?categoryNumber=001001025&pageNumber=1&pageSize=100",
   y_web:     "https://www.yes24.com/product/category/bestseller?categoryNumber=001001003020&pageNumber=1&pageSize=100",
   y_uxui:    "https://www.yes24.com/product/category/bestseller?categoryNumber=001001003020004&pageNumber=1&pageSize=100",
+  y_ad:      "https://www.yes24.com/product/category/bestseller?categoryNumber=001001025009006&pageNumber=1&pageSize=100",
+  y_design:  "https://www.yes24.com/product/category/bestseller?categoryNumber=001001007003004&pageNumber=1&pageSize=100",
   refresh:   "https://github.com/cinaeng/ux-book-tracker/actions/workflows/collect.yml",
   k_product: "https://product.kyobobook.co.kr/detail/S000220493173",
   k_econ_w:  "https://store.kyobobook.co.kr/bestseller/online/weekly/domestic/13",
@@ -250,6 +252,8 @@ function render(H) {
   <div class="cards">
     ${rankCard(y.econ_rank, py.econ_rank, "경제경영 종합", "경제경영 전체 베스트", "#c0392b", false, U.y_econ)}
     ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈", "#1a5fb4", false, U.y_mkt)}
+    ${rankCard(y.ad_rank, py.ad_rank, "광고/홍보/PR", "마케팅/세일즈 &gt; 광고/홍보/PR", "#8e44ad", false, U.y_ad)}
+    ${rankCard(y.design_rank, py.design_rank, "디자인", "예술 &gt; 미술 &gt; 디자인", "#d68910", false, U.y_design)}
     ${rankCard(y.web_rank, py.web_rank, "웹사이트", "IT모바일 &gt; 웹사이트", "#16a085", false, U.y_web)}
     ${rankCard(y.uxui_rank, py.uxui_rank, "UX/UI", "IT모바일 &gt; 웹사이트 &gt; UI/UX", "#27ae60", true, U.y_uxui)}
   </div>
@@ -276,9 +280,10 @@ function render(H) {
 
   <h2>수집 이력</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>날짜</th><th>경제경영 종합</th><th>마케팅/세일즈</th><th>웹사이트</th><th>UX/UI</th><th>판매지수</th><th>리뷰</th></tr></thead>
+    <thead><tr><th>날짜</th><th>경제경영 종합</th><th>마케팅/세일즈</th><th>광고/홍보/PR</th><th>디자인</th><th>웹사이트</th><th>UX/UI</th><th>판매지수</th><th>리뷰</th></tr></thead>
     <tbody>${[...H].reverse().map(h => `<tr>
       <td>${fmtTs(h.ts)}</td><td>${cell(h.yes24?.econ_rank)}</td><td>${cell(h.yes24?.mkt_rank)}</td>
+      <td>${cell(h.yes24?.ad_rank)}</td><td>${cell(h.yes24?.design_rank)}</td>
       <td>${cell(h.yes24?.web_rank)}</td><td>${cell(h.yes24?.uxui_rank)}</td>
       <td>${nf(h.yes24?.sales_index)}</td><td>${nf(h.yes24?.reviews)}</td></tr>`).join("")}
     </tbody>
@@ -288,8 +293,8 @@ function render(H) {
   <div class="note">
     <b>순위 기준</b> — 예스24 베스트셀러는 <b>최근 7일간 판매량·주문 수</b>로 매일 1회 집계됩니다.
     판매지수와는 별개 지표라, 판매지수가 낮아도 순위는 높게 잡힐 수 있습니다.<br>
-    <b>읽는 법</b> — 이 책은 4개 분야에 동시 분류돼 있습니다.
-    모수가 작은 <b>UX/UI</b>·<b>웹사이트</b>는 홍보에 바로 쓸 수 있는 숫자가 나오고,
+    <b>읽는 법</b> — 이 책은 예스24에서 여러 세부 분야에 동시 분류돼 있습니다.
+    모수가 작은 <b>UX/UI</b>·<b>웹사이트</b>·<b>광고/홍보/PR</b>·<b>디자인</b>은 홍보에 바로 쓸 수 있는 숫자가 나오고,
     <b>마케팅/세일즈</b>는 마케팅 액션에 민감하게 반응합니다.
     <b>경제경영 종합</b>은 모수가 커서 100위권 진입이 실질 목표선입니다.
   </div>
@@ -297,6 +302,8 @@ function render(H) {
     <a href="${U.y_product}" target="_blank">상품 페이지 ↗</a>
     <a href="${U.y_uxui}" target="_blank">UX/UI 베스트 ↗</a>
     <a href="${U.y_web}" target="_blank">웹사이트 베스트 ↗</a>
+    <a href="${U.y_ad}" target="_blank">광고/홍보/PR 베스트 ↗</a>
+    <a href="${U.y_design}" target="_blank">디자인 베스트 ↗</a>
     <a href="${U.y_mkt}" target="_blank">마케팅/세일즈 베스트 ↗</a>
     <a href="${U.y_econ}" target="_blank">경제경영 베스트 ↗</a>
   </div>
@@ -485,6 +492,10 @@ function render(H) {
       // 모수가 작은 니치 카테고리 — 왼쪽 축
       { label: "마케팅/세일즈", data: H.map(h => h.yes24?.mkt_rank ?? null),
         borderColor: "#1a5fb4", backgroundColor: "#1a5fb4", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
+      { label: "광고/홍보/PR", data: H.map(h => h.yes24?.ad_rank ?? null),
+        borderColor: "#8e44ad", backgroundColor: "#8e44ad", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
+      { label: "디자인", data: H.map(h => h.yes24?.design_rank ?? null),
+        borderColor: "#d68910", backgroundColor: "#d68910", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
       { label: "웹사이트", data: H.map(h => h.yes24?.web_rank ?? null),
         borderColor: "#16a085", backgroundColor: "#16a085", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
       { label: "UX/UI", data: H.map(h => h.yes24?.uxui_rank ?? null),
