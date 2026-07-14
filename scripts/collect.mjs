@@ -23,9 +23,11 @@ const Y = {
   best: (cat, page) =>
     `https://www.yes24.com/product/category/bestseller?categoryNumber=${cat}&pageNumber=${page}&pageSize=100`,
   CAT_MKT: "001001025009", // 경제경영 > 마케팅/세일즈
+  CAT_AD: "001001025009006", // 경제경영 > 마케팅/세일즈 > 광고/홍보/PR
   CAT_ECON: "001001025", // 경제경영 종합
   CAT_WEB: "001001003020", // IT 모바일 > 웹사이트
   CAT_UXUI: "001001003020004", // IT 모바일 > 웹사이트 > UI/UX
+  CAT_DESIGN: "001001007003004", // 예술 > 미술 > 디자인
 };
 
 const K = {
@@ -117,8 +119,10 @@ async function collectYes24() {
   const out = {
     econ_rank: null,
     mkt_rank: null,
+    ad_rank: null,
     web_rank: null,
     uxui_rank: null,
+    design_rank: null,
     sales_index: null,
     reviews: 0,
     rating: null,
@@ -127,6 +131,9 @@ async function collectYes24() {
   // (1) 경제경영 계열
   out.mkt_rank = await yes24CategoryRank(Y.CAT_MKT, 2); // 마케팅/세일즈 (1~200위)
   log("예스24 마케팅/세일즈:", out.mkt_rank ?? "권외");
+
+  out.ad_rank = await yes24CategoryRank(Y.CAT_AD, 1); // 광고/홍보/PR (모수 작음)
+  log("예스24 광고/홍보/PR:", out.ad_rank ?? "권외");
 
   out.econ_rank = await yes24CategoryRank(Y.CAT_ECON, 3); // 경제경영 종합 (1~300위)
   log("예스24 경제경영 종합:", out.econ_rank ?? "권외");
@@ -137,6 +144,10 @@ async function collectYes24() {
 
   out.web_rank = await yes24CategoryRank(Y.CAT_WEB, 1); // 웹사이트
   log("예스24 웹사이트:", out.web_rank ?? "권외");
+
+  // (3) 디자인 계열
+  out.design_rank = await yes24CategoryRank(Y.CAT_DESIGN, 1); // 예술 > 미술 > 디자인
+  log("예스24 디자인:", out.design_rank ?? "권외");
 
   // (3) 판매지수 · 리뷰 · 평점
   // 태그가 값 사이에 끼어 있으므로(<em>1,830</em> 등) 먼저 텍스트로 평탄화한다.
