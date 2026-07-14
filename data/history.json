@@ -56,18 +56,20 @@
     }
   },
   {
-    "ts": "2026-07-15T05:03:30.979+09:00",
+    "ts": "2026-07-15T08:44:37.017+09:00",
     "yes24": {
       "econ_rank": 76,
       "mkt_rank": 5,
+      "ad_rank": 1,
       "web_rank": 1,
       "uxui_rank": 1,
+      "design_rank": 1,
       "sales_index": 2430,
       "reviews": 2,
       "rating": 10
     },
     "kyobo_online": {
-      "econ_weekly": 386,
+      "econ_weekly": 387,
       "econ_daily": null,
       "it_daily": null,
       "website_cat": null,
