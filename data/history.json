@@ -56,7 +56,7 @@
     }
   },
   {
-    "ts": "2026-07-15T08:46:09.233+09:00",
+    "ts": "2026-07-15T10:29:26.887+09:00",
     "yes24": {
       "econ_rank": 76,
       "mkt_rank": 5,
@@ -67,6 +67,13 @@
       "sales_index": 2430,
       "reviews": 2,
       "rating": 10
+    },
+    "aladin": {
+      "sales_point": 110,
+      "weekly_rank": 27,
+      "weekly_label": "광고/홍보/PR",
+      "reviews": 0,
+      "rating": null
     },
     "kyobo_online": {
       "econ_weekly": 387,
