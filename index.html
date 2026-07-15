@@ -176,7 +176,9 @@ const U = {
   k_website: "https://store.kyobobook.co.kr/category/domestic/3319/best",
   k_uxui:    "https://store.kyobobook.co.kr/category/domestic/331902/best",
   k_tot_eco: "https://store.kyobobook.co.kr/bestseller/total/weekly/economics",
-  k_tot_tec: "https://store.kyobobook.co.kr/bestseller/total/weekly/tech"
+  k_tot_tec: "https://store.kyobobook.co.kr/bestseller/total/weekly/tech",
+  a_product: "https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=397807838",
+  a_best_ad: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=268&BestType=Bestseller&cnt=100&SortOrder=1&page=1"
 };
 
 const nf = n => n == null ? "—" : n.toLocaleString("ko-KR");
@@ -222,6 +224,7 @@ function render(H) {
   const days = Math.floor((new Date(cur.ts) - new Date(BOOK.pubdate + "T00:00:00+09:00")) / 864e5);
   const labels = H.map(h => fmtTs(h.ts));
   const y = cur.yes24 || {}, py = pre.yes24 || {};
+  const a = cur.aladin || {}, pa = pre.aladin || {};
   const ko = cur.kyobo_online || {}, pko = pre.kyobo_online || {};
   const kt = cur.kyobo_total || {}, pkt = pre.kyobo_total || {};
   const km = cur.kyobo_meta || {}, pkm = pre.kyobo_meta || {};
@@ -245,6 +248,7 @@ function render(H) {
 
 <div class="tabs">
   <button class="on" data-tab="yes24">예스24</button>
+  <button data-tab="aladin">알라딘</button>
   <button data-tab="kyobo">교보문고</button>
 </div>
 
@@ -306,6 +310,53 @@ function render(H) {
     <a href="${U.y_design}" target="_blank">디자인 베스트 ↗</a>
     <a href="${U.y_mkt}" target="_blank">마케팅/세일즈 베스트 ↗</a>
     <a href="${U.y_econ}" target="_blank">경제경영 베스트 ↗</a>
+  </div>
+</div>
+
+<div class="pane" id="pane-aladin">
+  <div class="cards">
+    ${rankCard(a.weekly_rank, pa.weekly_rank, a.weekly_label ? `${a.weekly_label} · 주간` : "주간 베스트", a.weekly_label ? `${a.weekly_label} 주간 베스트` : "알라딘 주간 베스트", "#e74c3c", true, U.a_best_ad)}
+  </div>
+
+  <div class="metrics">
+    <a class="metric" href="${U.a_product}" target="_blank" rel="noopener">
+      <span class="mlbl">세일즈포인트</span>
+      <b>${nf(a.sales_point)}</b>${deltaHtml(a.sales_point, pa.sales_point, false)}
+      <span class="mnote">알라딘 판매 선행지표</span>
+    </a>
+    <span class="msep">·</span>
+    <a class="metric" href="${U.a_product}" target="_blank" rel="noopener">
+      <span class="mlbl">리뷰</span>
+      <b>${nf(a.reviews)}건</b>${deltaHtml(a.reviews, pa.reviews, false)}
+      <span class="mnote">평점 ${a.rating ?? "—"}</span>
+    </a>
+  </div>
+
+  <h2>세일즈포인트 추이</h2>
+  <div class="panel"><div class="chartbox"><canvas id="c_a_sp"></canvas></div></div>
+
+  <h2>순위 추이 <span>(주간 베스트 · 낮을수록 좋음)</span></h2>
+  <div class="panel"><div class="chartbox"><canvas id="c_a_rank"></canvas></div></div>
+
+  <h2>수집 이력</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>날짜</th><th>주간 순위</th><th>분야</th><th>세일즈포인트</th><th>리뷰</th></tr></thead>
+    <tbody>${[...H].reverse().map(h => `<tr>
+      <td>${fmtTs(h.ts)}</td><td>${cell(h.aladin?.weekly_rank)}</td>
+      <td style="text-align:left">${h.aladin?.weekly_label ?? "—"}</td>
+      <td>${nf(h.aladin?.sales_point)}</td><td>${nf(h.aladin?.reviews)}</td></tr>`).join("")}
+    </tbody>
+  </table></div>
+  <div class="scrollhint">← 표를 옆으로 밀면 나머지 열이 보입니다</div>
+
+  <div class="note">
+    <b>세일즈포인트</b>는 알라딘의 판매 선행지표로, 최근 판매량에 가중치를 둬 매일 갱신됩니다.
+    <b>주간 순위</b>는 상품 페이지에 뜨는 뱃지(예: "광고/홍보/PR 주간 27위")를 그대로 읽습니다.
+    이 책이 여러 분야에 걸쳐 있을 땐 가장 좁은(=순위가 잘 잡히는) 분야의 뱃지를 표시합니다.
+  </div>
+  <div class="links">
+    <a href="${U.a_product}" target="_blank">상품 페이지 ↗</a>
+    <a href="${U.a_best_ad}" target="_blank">광고/홍보/PR 주간 베스트 ↗</a>
   </div>
 </div>
 
@@ -461,7 +512,7 @@ function render(H) {
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on"));
     b.classList.add("on");
-    document.querySelectorAll("#pane-yes24, #pane-kyobo").forEach(p => p.classList.remove("on"));
+    document.querySelectorAll("#pane-yes24, #pane-aladin, #pane-kyobo").forEach(p => p.classList.remove("on"));
     document.getElementById("pane-" + b.dataset.tab).classList.add("on");
   });
   document.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => {
@@ -517,6 +568,20 @@ function render(H) {
     data: { labels, datasets: [{ label: "판매지수", data: H.map(h => h.yes24?.sales_index ?? null),
       borderColor: "#e67e22", backgroundColor: "rgba(230,126,34,.12)", fill: true, tension: .25, spanGaps: true, pointRadius: 3.5 }] },
     options: base("판매지수", false)
+  }));
+
+  charts.push(new Chart(document.getElementById("c_a_sp"), {
+    type: "line",
+    data: { labels, datasets: [{ label: "세일즈포인트", data: H.map(h => h.aladin?.sales_point ?? null),
+      borderColor: "#e74c3c", backgroundColor: "rgba(231,76,60,.12)", fill: true, tension: .25, spanGaps: true, pointRadius: 3.5 }] },
+    options: base("세일즈포인트", false)
+  }));
+
+  charts.push(new Chart(document.getElementById("c_a_rank"), {
+    type: "line",
+    data: { labels, datasets: [{ label: "주간 순위", data: H.map(h => h.aladin?.weekly_rank ?? null),
+      borderColor: "#c0392b", backgroundColor: "rgba(192,57,43,.12)", fill: true, tension: .25, spanGaps: true, pointRadius: 3.5 }] },
+    options: base("순위", true)
   }));
 
   charts.push(new Chart(document.getElementById("c_k_rank"), {
