@@ -14,6 +14,7 @@ import { chromium } from "playwright";
 const BOOK = {
   yes24Id: "193444437",
   kyoboCode: "S000220493173",
+  aladinId: "397807838",
   isbn: "9791171521470",
 };
 
@@ -38,6 +39,10 @@ const K = {
   catUxui: "https://store.kyobobook.co.kr/category/domestic/331902/best",
   totalEcon: "https://store.kyobobook.co.kr/bestseller/total/weekly/economics",
   totalTech: "https://store.kyobobook.co.kr/bestseller/total/weekly/tech",
+};
+
+const A = {
+  product: `https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=${BOOK.aladinId}`,
 };
 
 const UA =
@@ -167,6 +172,48 @@ async function collectYes24() {
 }
 
 // ────────────────────────────────────────────────────────────
+// 알라딘 — 일반 HTTP fetch (서버 렌더링 ASP라 브라우저 불필요)
+
+async function collectAladin() {
+  const out = {
+    sales_point: null,
+    weekly_rank: null, // 순위 뱃지 숫자 (예: 광고/홍보/PR 주간 27위)
+    weekly_label: null, // 뱃지 카테고리명
+    reviews: 0,
+    rating: null,
+  };
+
+  const text = htmlToText(await getHtml(A.product));
+
+  // 세일즈포인트
+  const sp =
+    text.match(/세일즈포인트\s*([\d,]+)/) ||
+    text.match(/Sales\s*Point\s*:?\s*([\d,]+)/i);
+  if (sp) out.sales_point = Number(sp[1].replace(/,/g, ""));
+
+  // 순위 뱃지: "광고/홍보/PR 주간 27위" 처럼 카테고리 + 주간 + N위
+  // 여러 개면 가장 앞(=가장 좁은 분야) 것을 대표로 쓴다.
+  const badge = text.match(/([가-힣A-Za-z/·]+)\s*주간\s*(\d+)\s*위/);
+  if (badge) {
+    out.weekly_label = badge[1];
+    out.weekly_rank = Number(badge[2]);
+  }
+
+  // 리뷰(100자평·리뷰 편수 합산) · 평점
+  const r100 = text.match(/100자평\s*\(?\s*(\d+)/);
+  const rvw = text.match(/리뷰\s*\(?\s*(\d+)/);
+  out.reviews = (r100 ? Number(r100[1]) : 0) + (rvw ? Number(rvw[1]) : 0);
+  const rt = text.match(/([\d.]+)\s*점/) || text.match(/별점\s*([\d.]+)/);
+  if (rt && out.reviews > 0 && Number(rt[1]) > 0) out.rating = Number(rt[1]);
+
+  log(
+    "알라딘 세일즈포인트:", out.sales_point,
+    "· 순위:", out.weekly_rank != null ? `${out.weekly_label} 주간 ${out.weekly_rank}위` : "권외"
+  );
+  return out;
+}
+
+// ────────────────────────────────────────────────────────────
 // 교보문고 (Playwright)
 
 /** 상품 링크가 실제로 그려질 때까지 기다린다 (고정 대기는 오탐을 만든다) */
@@ -285,6 +332,14 @@ async function main() {
     yes24 = { econ_rank: null, mkt_rank: null, sales_index: null, reviews: 0, rating: null };
   }
 
+  let aladin;
+  try {
+    aladin = await collectAladin();
+  } catch (e) {
+    console.error("!! 알라딘 수집 실패:", e.message);
+    aladin = { sales_point: null, weekly_rank: null, weekly_label: null, reviews: 0, rating: null };
+  }
+
   let kyobo;
   try {
     kyobo = await collectKyobo();
@@ -300,6 +355,7 @@ async function main() {
   const record = {
     ts: kstNowISO(),
     yes24,
+    aladin,
     kyobo_online: kyobo.online,
     kyobo_total: kyobo.total,
     kyobo_meta: kyobo.meta,
