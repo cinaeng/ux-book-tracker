@@ -327,19 +327,25 @@ async function collectKyobo(browser) {
 // 그래서 대상 도서 항목의 innerText 앞머리 "N." 마커를 직접 읽는다.
 
 const AL_CAT = {
+  // 세부(leaf) 분야
   design: "51089", // 예술/대중문화 > 디자인/공예 > 디자인이야기
   brand: "1632", // 경제경영 > 마케팅/세일즈 > 마케팅/브랜드
+  // 상위 분류 (모수가 커서 진입이 어렵다 — 진입 시 자동으로 잡힘)
+  econ: "170", // 경제경영 (대분류)
+  mkt: "261", // 경제경영 > 마케팅/세일즈 (중분류)
+  designCraft: "50972", // 예술/대중문화 > 디자인/공예 (중분류)
 };
 
-async function aladinCatRank(page, cid) {
-  const url = `https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=${cid}&BestType=Bestseller&cnt=100&SortOrder=1&page=1`;
+/** 한 페이지에서 대상 도서의 순위 마커를 읽는다. 없으면 null. */
+async function aladinRankOnPage(page, cid, pageNo) {
+  const url = `https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=${cid}&BestType=Bestseller&cnt=100&SortOrder=1&page=${pageNo}`;
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForSelector('a[href*="ItemId="]', { timeout: 20000 }).catch(() => {});
 
   return page.evaluate((id) => {
     const link = document.querySelector(`a[href*="ItemId=${id}"]`);
-    if (!link) return null; // 목록에 없음 = 권외
-    // 항목 컨테이너를 위로 올라가며 "N." 로 시작하는 블록을 찾는다
+    if (!link) return null; // 이 페이지엔 없음
+    // 항목 컨테이너를 위로 올라가며 "N." 로 시작하는 블록을 찾는다 (순위 숫자가 박혀 있음)
     let box = link;
     for (let i = 0; i < 10; i++) {
       const p = box.parentElement;
@@ -352,14 +358,38 @@ async function aladinCatRank(page, cid) {
   }, id);
 }
 
+/** 여러 페이지를 훑어 순위를 찾는다. 상위 분류는 100위 밖일 수 있어 maxPages를 크게 준다. */
+async function aladinCatRank(page, cid, maxPages = 1) {
+  for (let p = 1; p <= maxPages; p++) {
+    const rank = await aladinRankOnPage(page, cid, p);
+    if (rank != null) return rank; // 항목의 순위 마커는 페이지가 넘어가도 절대 순위
+  }
+  return null;
+}
+
 async function collectAladinCats(browser) {
-  const out = { design_rank: null, brand_rank: null };
+  const out = {
+    design_rank: null,
+    brand_rank: null,
+    econ_rank: null,
+    mkt_rank: null,
+    designcraft_rank: null,
+  };
   const page = await browser.newPage({ userAgent: UA, locale: "ko-KR" });
   try {
-    out.design_rank = await aladinCatRank(page, AL_CAT.design);
+    // 세부 분야 (모수 작음 — 1페이지면 충분)
+    out.design_rank = await aladinCatRank(page, AL_CAT.design, 1);
     log("알라딘 디자인이야기:", out.design_rank ?? "권외");
-    out.brand_rank = await aladinCatRank(page, AL_CAT.brand);
+    out.brand_rank = await aladinCatRank(page, AL_CAT.brand, 1);
     log("알라딘 마케팅/브랜드:", out.brand_rank ?? "권외");
+
+    // 상위 분류 (모수 큼 — 진입 대비 3페이지까지)
+    out.mkt_rank = await aladinCatRank(page, AL_CAT.mkt, 3);
+    log("알라딘 마케팅/세일즈(상위):", out.mkt_rank ?? "권외");
+    out.designcraft_rank = await aladinCatRank(page, AL_CAT.designCraft, 3);
+    log("알라딘 디자인/공예(상위):", out.designcraft_rank ?? "권외");
+    out.econ_rank = await aladinCatRank(page, AL_CAT.econ, 3);
+    log("알라딘 경제경영(상위):", out.econ_rank ?? "권외");
   } finally {
     await page.close();
   }
@@ -388,6 +418,9 @@ async function main() {
   }
   aladin.design_rank = null;
   aladin.brand_rank = null;
+  aladin.econ_rank = null;
+  aladin.mkt_rank = null;
+  aladin.designcraft_rank = null;
 
   // 교보·알라딘 카테고리는 Playwright가 필요하므로 브라우저 하나를 공유한다.
   const browser = await chromium.launch();
@@ -406,6 +439,9 @@ async function main() {
     const cats = await collectAladinCats(browser);
     aladin.design_rank = cats.design_rank;
     aladin.brand_rank = cats.brand_rank;
+    aladin.econ_rank = cats.econ_rank;
+    aladin.mkt_rank = cats.mkt_rank;
+    aladin.designcraft_rank = cats.designcraft_rank;
   } catch (e) {
     console.error("!! 알라딘 카테고리 수집 실패:", e.message);
   } finally {
