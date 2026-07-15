@@ -178,7 +178,9 @@ const U = {
   k_tot_eco: "https://store.kyobobook.co.kr/bestseller/total/weekly/economics",
   k_tot_tec: "https://store.kyobobook.co.kr/bestseller/total/weekly/tech",
   a_product: "https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=397807838",
-  a_best_ad: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=268&BestType=Bestseller&cnt=100&SortOrder=1&page=1"
+  a_best_ad: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=268&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
+  a_best_design: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=51089&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
+  a_best_brand: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=1632&BestType=Bestseller&cnt=100&SortOrder=1&page=1"
 };
 
 const nf = n => n == null ? "—" : n.toLocaleString("ko-KR");
@@ -316,6 +318,8 @@ function render(H) {
 <div class="pane" id="pane-aladin">
   <div class="cards">
     ${rankCard(a.weekly_rank, pa.weekly_rank, a.weekly_label ? `${a.weekly_label} · 주간` : "주간 베스트", a.weekly_label ? `${a.weekly_label} 주간 베스트` : "알라딘 주간 베스트", "#e74c3c", true, U.a_best_ad)}
+    ${rankCard(a.brand_rank, pa.brand_rank, "마케팅/브랜드 · 주간", "경제경영 &gt; 마케팅/세일즈 &gt; 마케팅/브랜드", "#1a5fb4", false, U.a_best_brand)}
+    ${rankCard(a.design_rank, pa.design_rank, "디자인이야기 · 주간", "예술 &gt; 디자인/공예 &gt; 디자인이야기", "#d68910", false, U.a_best_design)}
   </div>
 
   <div class="metrics">
@@ -340,23 +344,26 @@ function render(H) {
 
   <h2>수집 이력</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>날짜</th><th>주간 순위</th><th>분야</th><th>세일즈포인트</th><th>리뷰</th></tr></thead>
+    <thead><tr><th>날짜</th><th>대표 순위</th><th>분야</th><th>마케팅/브랜드</th><th>디자인이야기</th><th>세일즈포인트</th><th>리뷰</th></tr></thead>
     <tbody>${[...H].reverse().map(h => `<tr>
       <td>${fmtTs(h.ts)}</td><td>${cell(h.aladin?.weekly_rank)}</td>
       <td style="text-align:left">${h.aladin?.weekly_label ?? "—"}</td>
+      <td>${cell(h.aladin?.brand_rank)}</td><td>${cell(h.aladin?.design_rank)}</td>
       <td>${nf(h.aladin?.sales_point)}</td><td>${nf(h.aladin?.reviews)}</td></tr>`).join("")}
     </tbody>
   </table></div>
   <div class="scrollhint">← 표를 옆으로 밀면 나머지 열이 보입니다</div>
 
   <div class="note">
-    <b>세일즈포인트</b>는 알라딘의 판매 선행지표로, 최근 판매량에 가중치를 둬 매일 갱신됩니다.
-    <b>주간 순위</b>는 상품 페이지에 뜨는 뱃지(예: "광고/홍보/PR 주간 27위")를 그대로 읽습니다.
-    이 책이 여러 분야에 걸쳐 있을 땐 가장 좁은(=순위가 잘 잡히는) 분야의 뱃지를 표시합니다.
+    <b>대표 순위</b>는 상품 페이지 뱃지(예: "광고/홍보/PR 주간 27위")를 그대로 읽습니다 — 알라딘은 순위권인 분야 하나만 뱃지로 노출하며, 여러 곳이면 가장 좁은 분야를 보여줍니다.
+    <b>마케팅/브랜드·디자인이야기</b>는 각 분야 주간 베스트 목록에서 순위를 직접 확인하며, 아직 순위권 밖이면 "권외"로 표시됩니다.
+    <b>세일즈포인트</b>는 알라딘 판매 선행지표로 매일 갱신됩니다.
   </div>
   <div class="links">
     <a href="${U.a_product}" target="_blank">상품 페이지 ↗</a>
-    <a href="${U.a_best_ad}" target="_blank">광고/홍보/PR 주간 베스트 ↗</a>
+    <a href="${U.a_best_ad}" target="_blank">광고/홍보/PR 베스트 ↗</a>
+    <a href="${U.a_best_brand}" target="_blank">마케팅/브랜드 베스트 ↗</a>
+    <a href="${U.a_best_design}" target="_blank">디자인이야기 베스트 ↗</a>
   </div>
 </div>
 
