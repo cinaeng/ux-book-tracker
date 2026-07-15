@@ -180,7 +180,10 @@ const U = {
   a_product: "https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=397807838",
   a_best_ad: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=268&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
   a_best_design: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=51089&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
-  a_best_brand: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=1632&BestType=Bestseller&cnt=100&SortOrder=1&page=1"
+  a_best_brand: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=1632&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
+  a_best_econ: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=170&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
+  a_best_mkt: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=261&BestType=Bestseller&cnt=100&SortOrder=1&page=1",
+  a_best_designcraft: "https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=50972&BestType=Bestseller&cnt=100&SortOrder=1&page=1"
 };
 
 const nf = n => n == null ? "—" : n.toLocaleString("ko-KR");
@@ -320,6 +323,9 @@ function render(H) {
     ${rankCard(a.weekly_rank, pa.weekly_rank, a.weekly_label ? `${a.weekly_label} · 주간` : "주간 베스트", a.weekly_label ? `${a.weekly_label} 주간 베스트` : "알라딘 주간 베스트", "#e74c3c", true, U.a_best_ad)}
     ${rankCard(a.brand_rank, pa.brand_rank, "마케팅/브랜드 · 주간", "경제경영 &gt; 마케팅/세일즈 &gt; 마케팅/브랜드", "#1a5fb4", false, U.a_best_brand)}
     ${rankCard(a.design_rank, pa.design_rank, "디자인이야기 · 주간", "예술 &gt; 디자인/공예 &gt; 디자인이야기", "#d68910", false, U.a_best_design)}
+    ${rankCard(a.mkt_rank, pa.mkt_rank, "마케팅/세일즈 · 주간", "경제경영 &gt; 마케팅/세일즈 (상위)", "#2980b9", false, U.a_best_mkt)}
+    ${rankCard(a.designcraft_rank, pa.designcraft_rank, "디자인/공예 · 주간", "예술 &gt; 디자인/공예 (상위)", "#e67e22", false, U.a_best_designcraft)}
+    ${rankCard(a.econ_rank, pa.econ_rank, "경제경영 · 주간", "경제경영 전체 (상위)", "#c0392b", false, U.a_best_econ)}
   </div>
 
   <div class="metrics">
@@ -344,11 +350,12 @@ function render(H) {
 
   <h2>수집 이력</h2>
   <div class="tablewrap"><table>
-    <thead><tr><th>날짜</th><th>대표 순위</th><th>분야</th><th>마케팅/브랜드</th><th>디자인이야기</th><th>세일즈포인트</th><th>리뷰</th></tr></thead>
+    <thead><tr><th>날짜</th><th>대표 순위</th><th>분야</th><th>마케팅/브랜드</th><th>디자인이야기</th><th>마케팅/세일즈</th><th>디자인/공예</th><th>경제경영</th><th>세일즈포인트</th><th>리뷰</th></tr></thead>
     <tbody>${[...H].reverse().map(h => `<tr>
       <td>${fmtTs(h.ts)}</td><td>${cell(h.aladin?.weekly_rank)}</td>
       <td style="text-align:left">${h.aladin?.weekly_label ?? "—"}</td>
       <td>${cell(h.aladin?.brand_rank)}</td><td>${cell(h.aladin?.design_rank)}</td>
+      <td>${cell(h.aladin?.mkt_rank)}</td><td>${cell(h.aladin?.designcraft_rank)}</td><td>${cell(h.aladin?.econ_rank)}</td>
       <td>${nf(h.aladin?.sales_point)}</td><td>${nf(h.aladin?.reviews)}</td></tr>`).join("")}
     </tbody>
   </table></div>
@@ -356,14 +363,18 @@ function render(H) {
 
   <div class="note">
     <b>대표 순위</b>는 상품 페이지 뱃지(예: "광고/홍보/PR 주간 27위")를 그대로 읽습니다 — 알라딘은 순위권인 분야 하나만 뱃지로 노출하며, 여러 곳이면 가장 좁은 분야를 보여줍니다.
-    <b>마케팅/브랜드·디자인이야기</b>는 각 분야 주간 베스트 목록에서 순위를 직접 확인하며, 아직 순위권 밖이면 "권외"로 표시됩니다.
+    나머지 분야는 각 주간 베스트 목록에서 순위를 직접 확인하며, 순위권 밖이면 "권외"로 표시됩니다.
+    <b>마케팅/세일즈·디자인/공예·경제경영</b>은 상위 분류라 모수가 커서 진입 문턱이 높습니다(진입 시 자동 표시).
     <b>세일즈포인트</b>는 알라딘 판매 선행지표로 매일 갱신됩니다.
   </div>
   <div class="links">
     <a href="${U.a_product}" target="_blank">상품 페이지 ↗</a>
-    <a href="${U.a_best_ad}" target="_blank">광고/홍보/PR 베스트 ↗</a>
-    <a href="${U.a_best_brand}" target="_blank">마케팅/브랜드 베스트 ↗</a>
-    <a href="${U.a_best_design}" target="_blank">디자인이야기 베스트 ↗</a>
+    <a href="${U.a_best_ad}" target="_blank">광고/홍보/PR ↗</a>
+    <a href="${U.a_best_brand}" target="_blank">마케팅/브랜드 ↗</a>
+    <a href="${U.a_best_design}" target="_blank">디자인이야기 ↗</a>
+    <a href="${U.a_best_mkt}" target="_blank">마케팅/세일즈 ↗</a>
+    <a href="${U.a_best_designcraft}" target="_blank">디자인/공예 ↗</a>
+    <a href="${U.a_best_econ}" target="_blank">경제경영 ↗</a>
   </div>
 </div>
 
