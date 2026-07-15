@@ -243,7 +243,7 @@ async function kyoboPosInList(page, url) {
   }, BOOK.kyoboCode);
 }
 
-async function collectKyobo() {
+async function collectKyobo(browser) {
   const online = {
     econ_weekly: null,
     econ_daily: null,
@@ -254,7 +254,6 @@ async function collectKyobo() {
   const total = { econ_weekly: null, tech_weekly: null };
   const meta = { badge_rank: null, reviews: 0, rating: null };
 
-  const browser = await chromium.launch();
   const page = await browser.newPage({ userAgent: UA, locale: "ko-KR" });
 
   try {
@@ -313,10 +312,58 @@ async function collectKyobo() {
     log("교보 종합주간 경제경영:", total.econ_weekly ?? "권외(TOP20 밖)");
     log("교보 종합주간 기술/컴퓨터:", total.tech_weekly ?? "권외(TOP20 밖)");
   } finally {
-    await browser.close();
+    await page.close();
   }
 
   return { online, total, meta };
+}
+
+// ────────────────────────────────────────────────────────────
+// 알라딘 카테고리 순위 (Playwright)
+//
+// 알라딘 베스트셀러 목록은 항목 앞에 "27." 같은 순위 숫자가 박혀 있다.
+// ⚠️ ItemId 등장 순서로 세면 안 된다 — 목록에 광고/추천 링크가 섞여 순번이 오염된다
+//    (실측: 실제 27위인데 ItemId 순서로는 49위로 잘못 나옴).
+// 그래서 대상 도서 항목의 innerText 앞머리 "N." 마커를 직접 읽는다.
+
+const AL_CAT = {
+  design: "51089", // 예술/대중문화 > 디자인/공예 > 디자인이야기
+  brand: "1632", // 경제경영 > 마케팅/세일즈 > 마케팅/브랜드
+};
+
+async function aladinCatRank(page, cid) {
+  const url = `https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&CID=${cid}&BestType=Bestseller&cnt=100&SortOrder=1&page=1`;
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+  await page.waitForSelector('a[href*="ItemId="]', { timeout: 20000 }).catch(() => {});
+
+  return page.evaluate((id) => {
+    const link = document.querySelector(`a[href*="ItemId=${id}"]`);
+    if (!link) return null; // 목록에 없음 = 권외
+    // 항목 컨테이너를 위로 올라가며 "N." 로 시작하는 블록을 찾는다
+    let box = link;
+    for (let i = 0; i < 10; i++) {
+      const p = box.parentElement;
+      if (!p) break;
+      box = p;
+      const m = (box.innerText || "").match(/^\s*(\d+)\.\s/);
+      if (m) return Number(m[1]);
+    }
+    return null;
+  }, id);
+}
+
+async function collectAladinCats(browser) {
+  const out = { design_rank: null, brand_rank: null };
+  const page = await browser.newPage({ userAgent: UA, locale: "ko-KR" });
+  try {
+    out.design_rank = await aladinCatRank(page, AL_CAT.design);
+    log("알라딘 디자인이야기:", out.design_rank ?? "권외");
+    out.brand_rank = await aladinCatRank(page, AL_CAT.brand);
+    log("알라딘 마케팅/브랜드:", out.brand_rank ?? "권외");
+  } finally {
+    await page.close();
+  }
+  return out;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -339,10 +386,14 @@ async function main() {
     console.error("!! 알라딘 수집 실패:", e.message);
     aladin = { sales_point: null, weekly_rank: null, weekly_label: null, reviews: 0, rating: null };
   }
+  aladin.design_rank = null;
+  aladin.brand_rank = null;
 
+  // 교보·알라딘 카테고리는 Playwright가 필요하므로 브라우저 하나를 공유한다.
+  const browser = await chromium.launch();
   let kyobo;
   try {
-    kyobo = await collectKyobo();
+    kyobo = await collectKyobo(browser);
   } catch (e) {
     console.error("!! 교보 수집 실패:", e.message);
     kyobo = {
@@ -350,6 +401,15 @@ async function main() {
       total: { econ_weekly: null, tech_weekly: null },
       meta: { badge_rank: null, reviews: 0, rating: null },
     };
+  }
+  try {
+    const cats = await collectAladinCats(browser);
+    aladin.design_rank = cats.design_rank;
+    aladin.brand_rank = cats.brand_rank;
+  } catch (e) {
+    console.error("!! 알라딘 카테고리 수집 실패:", e.message);
+  } finally {
+    await browser.close();
   }
 
   const record = {
