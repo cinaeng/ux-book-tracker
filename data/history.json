@@ -56,7 +56,7 @@
     }
   },
   {
-    "ts": "2026-07-15T11:31:26.870+09:00",
+    "ts": "2026-07-15T13:29:58.338+09:00",
     "yes24": {
       "econ_rank": 76,
       "mkt_rank": 5,
@@ -75,7 +75,10 @@
       "reviews": 0,
       "rating": null,
       "design_rank": null,
-      "brand_rank": null
+      "brand_rank": null,
+      "econ_rank": null,
+      "mkt_rank": null,
+      "designcraft_rank": null
     },
     "kyobo_online": {
       "econ_weekly": 387,
