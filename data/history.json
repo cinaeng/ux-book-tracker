@@ -180,5 +180,47 @@
       "reviews": 0,
       "rating": null
     }
+  },
+  {
+    "ts": "2026-07-18T04:57:14.904+09:00",
+    "yes24": {
+      "econ_rank": 57,
+      "mkt_rank": 3,
+      "ad_rank": 1,
+      "web_rank": 1,
+      "uxui_rank": 1,
+      "design_rank": 1,
+      "sales_index": 3789,
+      "reviews": 6,
+      "rating": 10
+    },
+    "aladin": {
+      "sales_point": 260,
+      "weekly_rank": 34,
+      "weekly_label": "디자인/공예",
+      "reviews": 0,
+      "rating": null,
+      "design_rank": null,
+      "brand_rank": null,
+      "econ_rank": null,
+      "mkt_rank": null,
+      "designcraft_rank": null
+    },
+    "kyobo_online": {
+      "econ_weekly": 378,
+      "econ_daily": null,
+      "it_daily": null,
+      "website_cat": null,
+      "uxui_cat": null
+    },
+    "kyobo_total": {
+      "econ_weekly": null,
+      "tech_weekly": null
+    },
+    "kyobo_meta": {
+      "badge_rank": 379,
+      "reviews": 0,
+      "rating": null
+    }
   }
 ]
