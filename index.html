@@ -203,12 +203,31 @@ const deltaHtml = (c, p, lowerBetter) => {
 };
 const cell = v => v == null ? `<span class="na">권외</span>` : nf(v);
 
-function rankCard(val, prevVal, label, sub, color, hero, href) {
+// 카테고리별 최고 순위(최저 숫자)와 현재 순위 연속 유지 횟수.
+// 순위가 내려가도 best 는 계속 남고, 현재 순위가 이어지는 동안 streak 이 쌓인다.
+function rankStats(H, get) {
+  const s = H.map(get);
+  const vals = s.filter(v => v != null);
+  const best = vals.length ? Math.min(...vals) : null;
+  const last = s[s.length - 1];
+  let streak = 0;
+  if (last != null) for (let i = s.length - 1; i >= 0 && s[i] === last; i--) streak++;
+  return { best, streak, cur: last };
+}
+
+function rankCard(val, prevVal, label, sub, color, hero, href, rec) {
   const body = val != null
     ? `<div class="val">${nf(val)}<small>위</small>${deltaHtml(val, prevVal, true)}</div>`
     : `<div class="val out">순위권 밖</div>`;
+  let recHtml = "";
+  if (rec) {
+    const b = [];
+    if (rec.best != null) b.push(`<span style="color:#b26a00;font-weight:700;background:#fff5e6;border:1px solid #f0d9b0;border-radius:5px;padding:1px 6px;">최고 ${nf(rec.best)}위</span>`);
+    if (rec.cur != null && rec.streak > 1) b.push(`<span style="color:#0a7f3f;font-weight:700;background:#ecf8f0;border:1px solid #bfe6cd;border-radius:5px;padding:1px 6px;">${rec.streak}일 연속</span>`);
+    if (b.length) recHtml = `<div style="font-size:10.5px;margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;">${b.join("")}</div>`;
+  }
   const inner = `<div class="lbl"><span class="dot" style="background:${color}"></span>${label}</div>
-    ${body}<div class="sub2">${sub}</div>`;
+    ${body}<div class="sub2">${sub}</div>${recHtml}`;
   const cls = `card${hero ? " hero" : ""}`;
   return href
     ? `<a class="${cls}" href="${href}" target="_blank" rel="noopener">${inner}</a>`
@@ -259,12 +278,12 @@ function render(H) {
 
 <div class="pane on" id="pane-yes24">
   <div class="cards">
-    ${rankCard(y.econ_rank, py.econ_rank, "경제경영 종합", "경제경영 전체 베스트", "#c0392b", false, U.y_econ)}
-    ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈", "#1a5fb4", false, U.y_mkt)}
-    ${rankCard(y.ad_rank, py.ad_rank, "광고/홍보/PR", "마케팅/세일즈 &gt; 광고/홍보/PR", "#8e44ad", false, U.y_ad)}
-    ${rankCard(y.design_rank, py.design_rank, "디자인", "예술 &gt; 미술 &gt; 디자인", "#d68910", false, U.y_design)}
-    ${rankCard(y.web_rank, py.web_rank, "웹사이트", "IT모바일 &gt; 웹사이트", "#16a085", false, U.y_web)}
-    ${rankCard(y.uxui_rank, py.uxui_rank, "UX/UI", "IT모바일 &gt; 웹사이트 &gt; UI/UX", "#27ae60", true, U.y_uxui)}
+    ${rankCard(y.econ_rank, py.econ_rank, "경제경영 종합", "경제경영 전체 베스트", "#c0392b", false, U.y_econ, rankStats(H, h => (h.yes24||{}).econ_rank))}
+    ${rankCard(y.mkt_rank, py.mkt_rank, "마케팅/세일즈", "경제경영 &gt; 마케팅/세일즈", "#1a5fb4", false, U.y_mkt, rankStats(H, h => (h.yes24||{}).mkt_rank))}
+    ${rankCard(y.ad_rank, py.ad_rank, "광고/홍보/PR", "마케팅/세일즈 &gt; 광고/홍보/PR", "#8e44ad", false, U.y_ad, rankStats(H, h => (h.yes24||{}).ad_rank))}
+    ${rankCard(y.design_rank, py.design_rank, "디자인", "예술 &gt; 미술 &gt; 디자인", "#d68910", false, U.y_design, rankStats(H, h => (h.yes24||{}).design_rank))}
+    ${rankCard(y.web_rank, py.web_rank, "웹사이트", "IT모바일 &gt; 웹사이트", "#16a085", false, U.y_web, rankStats(H, h => (h.yes24||{}).web_rank))}
+    ${rankCard(y.uxui_rank, py.uxui_rank, "UX/UI", "IT모바일 &gt; 웹사이트 &gt; UI/UX", "#27ae60", true, U.y_uxui, rankStats(H, h => (h.yes24||{}).uxui_rank))}
   </div>
 
   <div class="metrics">
@@ -320,12 +339,12 @@ function render(H) {
 
 <div class="pane" id="pane-aladin">
   <div class="cards">
-    ${rankCard(a.weekly_rank, pa.weekly_rank, a.weekly_label ? `${a.weekly_label} · 주간` : "주간 베스트", a.weekly_label ? `${a.weekly_label} 주간 베스트` : "알라딘 주간 베스트", "#e74c3c", true, U.a_best_ad)}
-    ${rankCard(a.brand_rank, pa.brand_rank, "마케팅/브랜드 · 주간", "경제경영 &gt; 마케팅/세일즈 &gt; 마케팅/브랜드", "#1a5fb4", false, U.a_best_brand)}
-    ${rankCard(a.design_rank, pa.design_rank, "디자인이야기 · 주간", "예술 &gt; 디자인/공예 &gt; 디자인이야기", "#d68910", false, U.a_best_design)}
-    ${rankCard(a.mkt_rank, pa.mkt_rank, "마케팅/세일즈 · 주간", "경제경영 &gt; 마케팅/세일즈 (상위)", "#2980b9", false, U.a_best_mkt)}
-    ${rankCard(a.designcraft_rank, pa.designcraft_rank, "디자인/공예 · 주간", "예술 &gt; 디자인/공예 (상위)", "#e67e22", false, U.a_best_designcraft)}
-    ${rankCard(a.econ_rank, pa.econ_rank, "경제경영 · 주간", "경제경영 전체 (상위)", "#c0392b", false, U.a_best_econ)}
+    ${rankCard(a.weekly_rank, pa.weekly_rank, a.weekly_label ? `${a.weekly_label} · 주간` : "주간 베스트", a.weekly_label ? `${a.weekly_label} 주간 베스트` : "알라딘 주간 베스트", "#e74c3c", true, U.a_best_ad, rankStats(H, h => (h.aladin||{}).weekly_rank))}
+    ${rankCard(a.brand_rank, pa.brand_rank, "마케팅/브랜드 · 주간", "경제경영 &gt; 마케팅/세일즈 &gt; 마케팅/브랜드", "#1a5fb4", false, U.a_best_brand, rankStats(H, h => (h.aladin||{}).brand_rank))}
+    ${rankCard(a.design_rank, pa.design_rank, "디자인이야기 · 주간", "예술 &gt; 디자인/공예 &gt; 디자인이야기", "#d68910", false, U.a_best_design, rankStats(H, h => (h.aladin||{}).design_rank))}
+    ${rankCard(a.mkt_rank, pa.mkt_rank, "마케팅/세일즈 · 주간", "경제경영 &gt; 마케팅/세일즈 (상위)", "#2980b9", false, U.a_best_mkt, rankStats(H, h => (h.aladin||{}).mkt_rank))}
+    ${rankCard(a.designcraft_rank, pa.designcraft_rank, "디자인/공예 · 주간", "예술 &gt; 디자인/공예 (상위)", "#e67e22", false, U.a_best_designcraft, rankStats(H, h => (h.aladin||{}).designcraft_rank))}
+    ${rankCard(a.econ_rank, pa.econ_rank, "경제경영 · 주간", "경제경영 전체 (상위)", "#c0392b", false, U.a_best_econ, rankStats(H, h => (h.aladin||{}).econ_rank))}
   </div>
 
   <div class="metrics">
@@ -386,11 +405,11 @@ function render(H) {
 
   <div class="pane on" id="sub-online">
     <div class="cards">
-      ${rankCard(ko.econ_weekly, pko.econ_weekly, "경제/경영 · 주간", "온라인 주간 베스트", "#c0392b", true, U.k_econ_w)}
-      ${rankCard(ko.econ_daily, pko.econ_daily, "경제/경영 · 일간", "온라인 일간 베스트 (~991위)", "#e74c3c", false, U.k_econ_d)}
-      ${rankCard(ko.it_daily, pko.it_daily, "컴퓨터/IT · 일간", "온라인 일간 베스트 (~435위)", "#8e44ad", false, U.k_it_d)}
-      ${rankCard(ko.website_cat, pko.website_cat, "웹사이트 카테고리", "카테고리 베스트 (24권)", "#16a085", false, U.k_website)}
-      ${rankCard(ko.uxui_cat, pko.uxui_cat, "UX/UI 카테고리", "카테고리 베스트 (11권)", "#27ae60", false, U.k_uxui)}
+      ${rankCard(ko.econ_weekly, pko.econ_weekly, "경제/경영 · 주간", "온라인 주간 베스트", "#c0392b", true, U.k_econ_w, rankStats(H, h => (h.kyobo_online||{}).econ_weekly))}
+      ${rankCard(ko.econ_daily, pko.econ_daily, "경제/경영 · 일간", "온라인 일간 베스트 (~991위)", "#e74c3c", false, U.k_econ_d, rankStats(H, h => (h.kyobo_online||{}).econ_daily))}
+      ${rankCard(ko.it_daily, pko.it_daily, "컴퓨터/IT · 일간", "온라인 일간 베스트 (~435위)", "#8e44ad", false, U.k_it_d, rankStats(H, h => (h.kyobo_online||{}).it_daily))}
+      ${rankCard(ko.website_cat, pko.website_cat, "웹사이트 카테고리", "카테고리 베스트 (24권)", "#16a085", false, U.k_website, rankStats(H, h => (h.kyobo_online||{}).website_cat))}
+      ${rankCard(ko.uxui_cat, pko.uxui_cat, "UX/UI 카테고리", "카테고리 베스트 (11권)", "#27ae60", false, U.k_uxui, rankStats(H, h => (h.kyobo_online||{}).uxui_cat))}
     </div>
 
     <div class="metrics">
@@ -440,8 +459,8 @@ function render(H) {
 
   <div class="pane" id="sub-total">
     <div class="cards">
-      ${rankCard(kt.econ_weekly, pkt.econ_weekly, "경제경영 · 주간", "종합 주간 베스트 (TOP 20만 공개)", "#c0392b", true, U.k_tot_eco)}
-      ${rankCard(kt.tech_weekly, pkt.tech_weekly, "기술/컴퓨터 · 주간", "종합 주간 베스트 (TOP 20만 공개)", "#8e44ad", false, U.k_tot_tec)}
+      ${rankCard(kt.econ_weekly, pkt.econ_weekly, "경제경영 · 주간", "종합 주간 베스트 (TOP 20만 공개)", "#c0392b", true, U.k_tot_eco, rankStats(H, h => (h.kyobo_total||{}).econ_weekly))}
+      ${rankCard(kt.tech_weekly, pkt.tech_weekly, "기술/컴퓨터 · 주간", "종합 주간 베스트 (TOP 20만 공개)", "#8e44ad", false, U.k_tot_tec, rankStats(H, h => (h.kyobo_total||{}).tech_weekly))}
     </div>
 
     <h2>수집 이력</h2>
