@@ -224,7 +224,7 @@
     }
   },
   {
-    "ts": "2026-07-19T04:58:25.707+09:00",
+    "ts": "2026-07-19T21:45:45.064+09:00",
     "yes24": {
       "econ_rank": 56,
       "mkt_rank": 3,
@@ -237,8 +237,8 @@
       "rating": 10
     },
     "aladin": {
-      "sales_point": 200,
-      "weekly_rank": 29,
+      "sales_point": 260,
+      "weekly_rank": 22,
       "weekly_label": "디자인/공예",
       "reviews": 0,
       "rating": null,
