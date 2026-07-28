@@ -158,6 +158,19 @@
   .pdel { font-family: inherit; cursor: pointer; font-size: 11px; color: #c0392b; background: none; border: 1px solid #e6bcbc; border-radius: 6px; padding: 3px 9px; }
   .pdel:hover { background: #fbeaea; }
   .pempty { font-size: 12.5px; color: #aaa; padding: 26px; text-align: center; border: 1px dashed #e0e0de; border-radius: 12px; background: #fff; }
+
+  /* 순위 유지 가이드 */
+  .pguide { background: #fff; border: 1px solid #e4e4e2; border-radius: 12px; padding: 15px 17px; margin-bottom: 8px; }
+  .pg-row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .pg-cell { flex: 1; min-width: 130px; }
+  .pg-lbl { font-size: 11.5px; color: #888; font-weight: 600; }
+  .pg-val { font-size: 27px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; margin-top: 3px; }
+  .pg-val span { font-size: 13px; font-weight: 600; color: #888; margin-left: 2px; }
+  .pg-note { font-size: 11px; color: #999; margin-top: 4px; line-height: 1.4; }
+  .pg-bar { position: relative; height: 9px; background: #f0f0ee; border-radius: 5px; margin: 14px 0 8px; }
+  .pg-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 5px; transition: width .2s; z-index: 1; }
+  .pg-band { position: absolute; top: -2px; height: 13px; border-left: 2px solid #0a7f3f; border-right: 2px solid #0a7f3f; background: rgba(10,127,63,.10); z-index: 2; }
+  .pg-cap { font-size: 10.5px; color: #aaa; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -495,6 +508,9 @@ function render(H) {
   <div class="cards" id="p-summary"></div>
   <div class="metrics" id="p-metrics"></div>
 
+  <h2>순위 유지 가이드 <span>TOP 100 · 최근 7일 이동 구매합</span></h2>
+  <div class="pguide" id="p-guide"></div>
+
   <h2>구매 기록 추가 <span>직접 입력 · 이 브라우저에 저장</span></h2>
   <div class="panel">
     <div class="pform">
@@ -502,7 +518,7 @@ function render(H) {
       <div class="pfield"><label>도착일(선택)</label><input type="date" id="p-arrival"></div>
       <div class="pfield"><label>서점</label>
         <select id="p-store">
-          <option>카카오(예스24)</option><option>예스24</option><option>알라딘</option><option>교보문고</option>
+          <option>예스24 선물하기 (카톡)</option><option>예스24</option><option>알라딘</option><option>교보문고</option>
           <option>인터파크</option><option>영풍문고</option><option>기타</option>
         </select>
       </div>
@@ -731,7 +747,7 @@ function refreshPurchase() {
     storeBuyerQty[s] = storeBuyerQty[s] || {};
     storeBuyerQty[s][b] = (storeBuyerQty[s][b] || 0) + (+r.qty || 0);
   });
-  const storeOrder = ["예스24", "카카오(예스24)", "카카오톡 선물하기"];
+  const storeOrder = ["예스24", "예스24 선물하기 (카톡)", "카카오톡 선물하기"];
   const stores = [...storeOrder.filter(s => storeQty[s]), ...Object.keys(storeQty).filter(s => !storeOrder.includes(s))];
 
   const metricsEl = document.getElementById("p-metrics");
@@ -744,6 +760,50 @@ function refreshPurchase() {
       parts.push(`<span class="metric"><span class="mlbl">${s}</span> <b>${nf(storeQty[s])}권</b> <span class="mnote">(${bd})</span></span>`);
     });
     metricsEl.innerHTML = parts.join('<span class="msep">·</span>');
+  }
+
+  // 순위 유지 가이드 — 최근 7일 이동 구매합 vs TOP 100 목표 밴드
+  // 목표: 하루 2권 × 7일 = 14권. (TOP 50을 노리면 P_TARGET을 45로 올리면 됨)
+  const P_TARGET = 14, P_BAND_LO = 12, P_BAND_HI = 16, P_DAILY_CAP = 4, P_SCALE = 24;
+  const gEl = document.getElementById("p-guide");
+  if (gEl) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let last7 = 0;
+    rows.forEach(r => {
+      if (!r.date) return;
+      const d = new Date(r.date + "T00:00:00");
+      const diff = Math.round((today - d) / 864e5);
+      if (diff >= 0 && diff <= 6) last7 += (+r.qty || 0);
+    });
+    const recToday = Math.max(0, Math.min(P_DAILY_CAP, P_TARGET - last7));
+    let statusText, statusColor;
+    if (last7 < P_BAND_LO) { statusText = "부족 — 순위 하락 위험"; statusColor = "#c0392b"; }
+    else if (last7 <= 18) { statusText = "적정 — TOP 100 방어선"; statusColor = "#0a7f3f"; }
+    else { statusText = "여유 — 하루 1권으로 절감 가능"; statusColor = "#1a5fb4"; }
+    let recNote;
+    if (recToday === 0) recNote = "오늘은 안 사도 밴드 유지";
+    else if (recToday >= P_DAILY_CAP) recNote = "부족분은 2~3일 나눠 채우기(몰아 사기 금지)";
+    else recNote = "매일 2권 페이스 유지";
+    const barPct = Math.max(0, Math.min(100, Math.round(last7 / P_SCALE * 100)));
+    const bandLeft = P_BAND_LO / P_SCALE * 100, bandW = (P_BAND_HI - P_BAND_LO) / P_SCALE * 100;
+    gEl.innerHTML =
+      `<div class="pg-row">
+        <div class="pg-cell">
+          <div class="pg-lbl">최근 7일 구매합</div>
+          <div class="pg-val" style="color:${statusColor}">${nf(last7)}<span>권</span></div>
+          <div class="pg-note">${statusText}</div>
+        </div>
+        <div class="pg-cell">
+          <div class="pg-lbl">오늘 권장 구매</div>
+          <div class="pg-val">${nf(recToday)}<span>권</span></div>
+          <div class="pg-note">${recNote}</div>
+        </div>
+      </div>
+      <div class="pg-bar">
+        <div class="pg-fill" style="width:${barPct}%;background:${statusColor}"></div>
+        <div class="pg-band" style="left:${bandLeft}%;width:${bandW}%"></div>
+      </div>
+      <div class="pg-cap">초록 구간이 목표 밴드 <b>${P_BAND_LO}~${P_BAND_HI}권</b> (TOP 100 · 하루 2권 기준) · 몰아 사기 금지, 매일 얇게 · 85위 넘으면 하루 3권으로 상향</div>`;
   }
 
   const cEl = document.getElementById("p-count");
