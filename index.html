@@ -46,8 +46,6 @@
   .lastsync { font-size: 11px; color: #999; white-space: nowrap; }
   .lastsync b { color: #555; font-weight: 600; }
 
-  /* 모바일: 헤더가 줄바꿈되면 버튼 묶음이 어중간하게 뜬다.
-     버튼과 '최근 갱신'을 한 줄에 나란히 놓고 왼쪽 정렬로 통일한다. */
   @media (max-width: 640px) {
     .hdr-row { flex-direction: column; align-items: stretch; gap: 12px; }
     .hdr-actions {
@@ -103,7 +101,6 @@
   .delta { font-size: 12px; font-weight: 700; margin-left: 6px; }
   .up { color: #0a7f3f; } .down { color: #c92a2a; }
 
-  /* 순위(박스)와 구분되는 보조 지표 — 텍스트 한 줄 */
   .metrics {
     display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
     margin: -14px 0 26px; padding: 0 2px;
@@ -127,14 +124,12 @@
   th { background: #f7f7f5; font-weight: 600; color: #555; font-size: 11px; }
   th:first-child, td:first-child { text-align: left; }
   tbody tr:last-child td { border-bottom: none; }
-  /* 열이 많아 좁은 화면에선 가로 스크롤이 필요하다.
-     overflow:hidden 이면 스크롤 자체가 막히므로 overflow-x:auto 로 둔다. */
   .tablewrap {
     border: 1px solid #e4e4e2; border-radius: 12px;
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
   }
-  .tablewrap table { min-width: 520px; } /* 이보다 좁아지면 스크롤 */
+  .tablewrap table { min-width: 520px; }
   .tablewrap::-webkit-scrollbar { height: 6px; }
   .tablewrap::-webkit-scrollbar-thumb { background: #d6d6d4; border-radius: 3px; }
   .scrollhint { display: none; font-size: 11px; color: #aaa; margin: 6px 2px 0; }
@@ -144,10 +139,23 @@
   .note { margin-top: 20px; padding: 13px 15px; background: #fff; border-left: 3px solid #d4d4d2; border-radius: 0 8px 8px 0; font-size: 11.5px; color: #666; line-height: 1.7; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
   .note.warn { background: #fdfaf5; border-left-color: #e0a96d; }
   .note b { color: #333; }
+  .note code { background: #f2f2ef; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
   .links { margin-top: 14px; font-size: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
   .links a { color: #1a5fb4; text-decoration: none; }
   .links a:hover { text-decoration: underline; }
   .foot { margin-top: 34px; padding-top: 16px; border-top: 1px solid #e6e6e4; font-size: 11px; color: #aaa; }
+
+  /* 구매내역 */
+  .pform { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .pfield { display: flex; flex-direction: column; gap: 5px; }
+  .pfield label { font-size: 11px; font-weight: 600; color: #888; }
+  .pfield input, .pfield select { font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid #dcdcda; border-radius: 8px; background: #fff; color: #1a1a1a; }
+  .pfield input[type=number] { width: 112px; }
+  .pbtn { font-family: inherit; cursor: pointer; font-size: 13px; font-weight: 600; padding: 9px 20px; border: none; border-radius: 999px; background: #111; color: #fff; transition: background .12s; }
+  .pbtn:hover { background: #333; }
+  .pdel { font-family: inherit; cursor: pointer; font-size: 11px; color: #c0392b; background: none; border: 1px solid #e6bcbc; border-radius: 6px; padding: 3px 9px; }
+  .pdel:hover { background: #fbeaea; }
+  .pempty { font-size: 12.5px; color: #aaa; padding: 26px; text-align: center; border: 1px dashed #e0e0de; border-radius: 12px; background: #fff; }
 </style>
 </head>
 <body>
@@ -191,7 +199,6 @@ const fmtTs = ts => {
   const d = new Date(ts), p = n => String(n).padStart(2, "0");
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}`;
 };
-// 최근 갱신 표시용 — 날짜 + 시각
 const fmtFull = ts => {
   const d = new Date(ts), p = n => String(n).padStart(2, "0");
   return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
@@ -203,8 +210,6 @@ const deltaHtml = (c, p, lowerBetter) => {
 };
 const cell = v => v == null ? `<span class="na">권외</span>` : nf(v);
 
-// 카테고리별 최고 순위(최저 숫자)와 현재 순위 연속 유지 횟수.
-// 순위가 내려가도 best 는 계속 남고, 현재 순위가 이어지는 동안 streak 이 쌓인다.
 function rankStats(H, get) {
   const s = H.map(get);
   const vals = s.filter(v => v != null);
@@ -234,7 +239,6 @@ function rankCard(val, prevVal, label, sub, color, hero, href, rec) {
     : `<div class="${cls}">${inner}</div>`;
 }
 
-// 갱신 시 다시 그리므로, 기존 차트를 파기하지 않으면 Chart.js가 "Canvas is already in use"로 실패한다.
 let charts = [];
 function resetCharts() {
   charts.forEach(c => c.destroy());
@@ -274,6 +278,7 @@ function render(H) {
   <button class="on" data-tab="yes24">예스24</button>
   <button data-tab="aladin">알라딘</button>
   <button data-tab="kyobo">교보문고</button>
+  <button data-tab="purchase">구매내역</button>
 </div>
 
 <div class="pane on" id="pane-yes24">
@@ -484,17 +489,44 @@ function render(H) {
   </div>
 </div>
 
+<div class="pane" id="pane-purchase">
+  <div class="cards" id="p-summary"></div>
+
+  <h2>구매 기록 추가 <span>직접 입력 · 이 브라우저에 저장</span></h2>
+  <div class="panel">
+    <div class="pform">
+      <div class="pfield"><label>날짜</label><input type="date" id="p-date"></div>
+      <div class="pfield"><label>서점</label>
+        <select id="p-store">
+          <option>예스24</option><option>알라딘</option><option>교보문고</option>
+          <option>인터파크</option><option>영풍문고</option><option>기타</option>
+        </select>
+      </div>
+      <div class="pfield"><label>수량(권)</label><input type="number" id="p-qty" min="1" step="1" value="1"></div>
+      <div class="pfield"><label>금액(원)</label><input type="number" id="p-amount" min="0" step="100" placeholder="선택"></div>
+      <button class="pbtn" id="p-add">추가</button>
+    </div>
+  </div>
+
+  <h2>일별 구매 권수</h2>
+  <div class="panel"><div class="chartbox"><canvas id="c_purchase"></canvas></div></div>
+
+  <h2>구매 이력 <span id="p-count"></span></h2>
+  <div id="p-tablewrap"></div>
+
+  <div class="note">
+    <b>저장 방식</b> — 직접 입력한 기록은 <b>이 브라우저</b>에 저장됩니다(기기·브라우저가 바뀌면 보이지 않습니다).
+    영수증·주문내역 이미지는 채팅에 올려주시면 제가 읽어 <code>data/purchases.json</code>에 반영하며,
+    이렇게 넣은 기록은 자동 갱신되어 모든 기기에서 보입니다.
+  </div>
+</div>
+
 <div class="foot">
   매일 새벽 4시(KST) GitHub Actions가 자동 수집합니다. 위 <b>새로고침</b>은 최신 수집 결과를 다시 읽어옵니다.
   지금 당장 다시 수집해야 한다면 <a href="${U.refresh}" target="_blank" rel="noopener">Actions에서 수동 실행</a>하세요.
   · 인터파크 도서는 2024년 서비스 종료로 제외
 </div>`;
 
-  // ── 새로고침 ──
-  // 이 대시보드는 정적 페이지(GitHub Pages)라, 여기서 수집 워크플로를 직접 실행할 수는 없다.
-  // 실행하려면 GitHub 토큰이 필요한데 공개 페이지에 토큰을 심으면 누구나 저장소에 쓸 수 있게 된다.
-  // 그래서 이 버튼은 "최신 수집 결과를 다시 읽어오는" 역할만 한다.
-  // 수집 자체는 매일 새벽 4시(KST) GitHub Actions가 자동으로 돌린다.
   const btn = document.getElementById("btnRefresh");
   const btnText = document.getElementById("btnText");
 
@@ -510,7 +542,6 @@ function render(H) {
       ic.outerHTML = `<span id="btnIcon">${ok ? "✓" : "↻"}</span>`;
       btn.classList.toggle("done", ok);
       btnText.textContent = msg;
-      // 잠시 뒤 기본 상태로 되돌린다
       setTimeout(() => {
         const i2 = document.getElementById("btnIcon");
         if (i2) i2.textContent = "↻";
@@ -521,12 +552,12 @@ function render(H) {
     };
 
     try {
+      await pLoadBase();
       const r = await fetch("./data/history.json?t=" + Date.now(), { cache: "no-store" });
       if (!r.ok) throw new Error(r.status);
       const fresh = await r.json();
       const changed = fresh[fresh.length - 1]?.ts !== cur.ts;
-      render(fresh); // 항상 최신 데이터로 다시 그린다 (버튼 상태도 함께 초기화됨)
-      // render()가 버튼을 새로 만들었으므로, 결과 표시는 새 버튼에 적용한다
+      render(fresh);
       const nb = document.getElementById("btnRefresh");
       const nt = document.getElementById("btnText");
       const ni = document.getElementById("btnIcon");
@@ -545,12 +576,12 @@ function render(H) {
     }
   };
 
-  // 탭
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on"));
     b.classList.add("on");
-    document.querySelectorAll("#pane-yes24, #pane-aladin, #pane-kyobo").forEach(p => p.classList.remove("on"));
+    document.querySelectorAll("#pane-yes24, #pane-aladin, #pane-kyobo, #pane-purchase").forEach(p => p.classList.remove("on"));
     document.getElementById("pane-" + b.dataset.tab).classList.add("on");
+    if (b.dataset.tab === "purchase" && pChart) setTimeout(() => pChart.resize(), 0);
   });
   document.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".subtabs button").forEach(x => x.classList.remove("on"));
@@ -559,7 +590,6 @@ function render(H) {
     document.getElementById("sub-" + b.dataset.sub).classList.add("on");
   });
 
-  // 차트
   const base = (yTitle, reverse) => ({
     responsive: true, maintainAspectRatio: false,
     scales: {
@@ -571,13 +601,10 @@ function render(H) {
 
   charts.push(new Chart(document.getElementById("c_y_rank"), {
     type: "line",
-    // 범례 순서는 위쪽 카드 순서와 동일하게 맞춘다: 경제경영 종합 → 마케팅/세일즈 → 웹사이트 → UX/UI
     data: { labels, datasets: [
-      // 모수가 큰 대분류 — 스케일이 달라 오른쪽 축으로 분리
       { label: "경제경영 종합", data: H.map(h => h.yes24?.econ_rank ?? null),
         borderColor: "#c0392b", backgroundColor: "#c0392b", borderDash: [5, 3],
         tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y1" },
-      // 모수가 작은 니치 카테고리 — 왼쪽 축
       { label: "마케팅/세일즈", data: H.map(h => h.yes24?.mkt_rank ?? null),
         borderColor: "#1a5fb4", backgroundColor: "#1a5fb4", tension: .25, spanGaps: true, pointRadius: 3.5, yAxisID: "y" },
       { label: "광고/홍보/PR", data: H.map(h => h.yes24?.ad_rank ?? null),
@@ -627,18 +654,130 @@ function render(H) {
       borderColor: "#c0392b", backgroundColor: "rgba(192,57,43,.12)", fill: true, tension: .25, spanGaps: true, pointRadius: 3.5 }] },
     options: base("순위", true)
   }));
+
+  mountPurchase();
 }
 
-fetch("./data/history.json?t=" + Date.now())
-  .then(r => { if (!r.ok) throw new Error("history.json 로드 실패 (" + r.status + ")"); return r.json(); })
-  .then(H => {
-    if (!Array.isArray(H) || H.length === 0) throw new Error("수집된 데이터가 없습니다");
-    render(H);
-  })
-  .catch(e => {
-    document.getElementById("root").innerHTML =
-      `<div class="loading">데이터를 불러오지 못했습니다.<br><small>${e.message}</small></div>`;
-  });
+/* ===================== 구매내역 ===================== */
+let PBASE = [];
+const P_LS_ADD = "uxbt_purchases_add";
+const P_LS_DEL = "uxbt_purchases_del";
+const pLoadLS = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } };
+const pSaveLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let pChart = null;
+
+function pAll() {
+  const add = pLoadLS(P_LS_ADD);
+  const del = new Set(pLoadLS(P_LS_DEL));
+  return [...PBASE, ...add]
+    .filter(r => r && !del.has(r.id))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+function pMetric(label, val, color) {
+  return `<div class="card"><div class="lbl"><span class="dot" style="background:${color}"></span>${label}</div><div class="val">${val}</div></div>`;
+}
+function pAdd(rec) { const a = pLoadLS(P_LS_ADD); a.push(rec); pSaveLS(P_LS_ADD, a); refreshPurchase(); }
+function pDelete(id) {
+  let a = pLoadLS(P_LS_ADD);
+  if (a.some(r => r.id === id)) { a = a.filter(r => r.id !== id); pSaveLS(P_LS_ADD, a); }
+  else { const d = pLoadLS(P_LS_DEL); if (!d.includes(id)) { d.push(id); pSaveLS(P_LS_DEL, d); } }
+  refreshPurchase();
+}
+function refreshPurchase() {
+  const rows = pAll();
+  const q = rows.reduce((s, r) => s + (+r.qty || 0), 0);
+  const amt = rows.reduce((s, r) => s + (+r.amount || 0), 0);
+  const cnt = rows.length;
+  const avg = q ? Math.round(amt / q) : null;
+
+  const sum = document.getElementById("p-summary");
+  if (sum) sum.innerHTML =
+    pMetric("총 구매 권수", nf(q) + '<small>권</small>', "#c0392b") +
+    pMetric("총 구매 금액", nf(amt) + '<small>원</small>', "#0a7f3f") +
+    pMetric("구매 건수", nf(cnt) + '<small>건</small>', "#1a5fb4") +
+    pMetric("평균 권당가", (avg ? nf(avg) : "—") + '<small>원</small>', "#8e44ad");
+
+  const cEl = document.getElementById("p-count");
+  if (cEl) cEl.textContent = cnt ? `(${cnt}건)` : "";
+
+  const tw = document.getElementById("p-tablewrap");
+  if (tw) {
+    if (!rows.length) {
+      tw.className = "";
+      tw.innerHTML = `<div class="pempty">아직 기록이 없습니다. 위에서 직접 입력하거나, 영수증 이미지를 채팅에 올려주세요.</div>`;
+    } else {
+      tw.className = "tablewrap";
+      tw.innerHTML =
+        `<table><thead><tr><th>날짜</th><th>서점</th><th>수량</th><th>금액</th><th></th></tr></thead><tbody>` +
+        rows.map(r => `<tr>
+          <td>${r.date || "—"}</td>
+          <td style="text-align:left">${r.store || "—"}</td>
+          <td>${nf(+r.qty || 0)}권</td>
+          <td>${(r.amount != null && r.amount !== "") ? nf(+r.amount) + "원" : "—"}</td>
+          <td><button class="pdel" data-id="${r.id}">삭제</button></td>
+        </tr>`).join("") +
+        `</tbody></table>`;
+      tw.querySelectorAll(".pdel").forEach(b => { b.onclick = () => pDelete(b.dataset.id); });
+    }
+  }
+
+  const byDay = {};
+  rows.forEach(r => { if (r.date) byDay[r.date] = (byDay[r.date] || 0) + (+r.qty || 0); });
+  const ds = Object.keys(byDay).sort();
+  const cv = document.getElementById("c_purchase");
+  if (cv) {
+    if (pChart) pChart.destroy();
+    pChart = new Chart(cv, {
+      type: "bar",
+      data: { labels: ds.map(d => d.slice(5)), datasets: [
+        { label: "구매 권수", data: ds.map(d => byDay[d]), backgroundColor: "#c0392b", borderRadius: 4, maxBarThickness: 34 }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+function mountPurchase() {
+  const dateEl = document.getElementById("p-date");
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  const addBtn = document.getElementById("p-add");
+  if (addBtn) addBtn.onclick = () => {
+    const date = document.getElementById("p-date").value;
+    const store = document.getElementById("p-store").value;
+    const qty = parseInt(document.getElementById("p-qty").value, 10);
+    const ar = document.getElementById("p-amount").value;
+    const amount = ar ? parseInt(ar, 10) : null;
+    if (!date) { alert("날짜를 입력하세요."); return; }
+    if (!qty || qty < 1) { alert("수량을 1 이상 입력하세요."); return; }
+    pAdd({ id: "m" + Date.now(), date, store, qty, amount });
+    document.getElementById("p-amount").value = "";
+    document.getElementById("p-qty").value = "1";
+  };
+  refreshPurchase();
+}
+function pLoadBase() {
+  return fetch("./data/purchases.json?t=" + Date.now(), { cache: "no-store" })
+    .then(r => r.ok ? r.json() : [])
+    .then(d => { PBASE = Array.isArray(d) ? d : []; })
+    .catch(() => { PBASE = []; });
+}
+
+/* ===================== 부팅 ===================== */
+pLoadBase().finally(() => {
+  fetch("./data/history.json?t=" + Date.now())
+    .then(r => { if (!r.ok) throw new Error("history.json 로드 실패 (" + r.status + ")"); return r.json(); })
+    .then(H => {
+      if (!Array.isArray(H) || H.length === 0) throw new Error("수집된 데이터가 없습니다");
+      render(H);
+    })
+    .catch(e => {
+      document.getElementById("root").innerHTML =
+        `<div class="loading">데이터를 불러오지 못했습니다.<br><small>${e.message}</small></div>`;
+    });
+});
 </script>
 </body>
 </html>
