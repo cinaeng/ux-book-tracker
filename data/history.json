@@ -644,7 +644,7 @@
     }
   },
   {
-    "ts": "2026-07-29T07:17:28.681+09:00",
+    "ts": "2026-07-29T07:25:12.817+09:00",
     "yes24": {
       "econ_rank": 144,
       "mkt_rank": 9,
@@ -681,8 +681,8 @@
     },
     "kyobo_meta": {
       "badge_rank": 590,
-      "reviews": 0,
-      "rating": null
+      "reviews": 5,
+      "rating": 10
     }
   }
 ]
