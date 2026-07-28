@@ -723,9 +723,14 @@ function refreshPurchase() {
     sum.innerHTML = cards;
   }
 
-  // 카드 아래 텍스트 줄 — 구매 건수 · 총 구매 금액 · 서점별 구매권수
-  const storeQty = {};
-  rows.forEach(r => { const s = r.store || "기타"; storeQty[s] = (storeQty[s] || 0) + (+r.qty || 0); });
+  // 카드 아래 텍스트 줄 — 구매 건수 · 총 구매 금액 · 서점별 구매권수(구매자별 분리)
+  const storeQty = {}, storeBuyerQty = {};
+  rows.forEach(r => {
+    const s = r.store || "기타", b = r.buyer || "미지정";
+    storeQty[s] = (storeQty[s] || 0) + (+r.qty || 0);
+    storeBuyerQty[s] = storeBuyerQty[s] || {};
+    storeBuyerQty[s][b] = (storeBuyerQty[s][b] || 0) + (+r.qty || 0);
+  });
   const storeOrder = ["예스24", "카카오(예스24)", "카카오톡 선물하기"];
   const stores = [...storeOrder.filter(s => storeQty[s]), ...Object.keys(storeQty).filter(s => !storeOrder.includes(s))];
 
@@ -734,7 +739,10 @@ function refreshPurchase() {
     const parts = [];
     parts.push(`<span class="metric"><span class="mlbl">구매 건수</span> <b>${nf(cnt)}건</b></span>`);
     parts.push(`<span class="metric"><span class="mlbl">총 구매 금액</span> <b>${nf(amt)}원</b></span>`);
-    stores.forEach(s => parts.push(`<span class="metric"><span class="mlbl">${s}</span> <b>${nf(storeQty[s])}권</b></span>`));
+    stores.forEach(s => {
+      const bd = buyers.map(b => `${b.charAt(0)} ${nf((storeBuyerQty[s] && storeBuyerQty[s][b]) || 0)}`).join("·");
+      parts.push(`<span class="metric"><span class="mlbl">${s}</span> <b>${nf(storeQty[s])}권</b> <span class="mnote">(${bd})</span></span>`);
+    });
     metricsEl.innerHTML = parts.join('<span class="msep">·</span>');
   }
 
