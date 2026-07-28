@@ -1,1 +1,12 @@
-[]
+[
+  { "id": "h20260708", "date": "2026-07-08", "arrival": null, "store": "카카오(예스24)", "buyer": "한성희", "qty": 2, "amount": null },
+  { "id": "h20260709", "date": "2026-07-09", "arrival": null, "store": "카카오(예스24)", "buyer": "한성희", "qty": 2, "amount": null },
+  { "id": "h20260710a", "date": "2026-07-10", "arrival": null, "store": "카카오(예스24)", "buyer": "한성희", "qty": 4, "amount": null },
+  { "id": "h20260710b", "date": "2026-07-10", "arrival": "2026-07-13", "store": "예스24", "buyer": "한성희", "qty": 10, "amount": null },
+  { "id": "h20260712", "date": "2026-07-12", "arrival": "2026-07-15", "store": "예스24", "buyer": "한성희", "qty": 4, "amount": null },
+  { "id": "h20260713", "date": "2026-07-13", "arrival": "2026-07-16", "store": "예스24", "buyer": "한성희", "qty": 2, "amount": null },
+  { "id": "h20260714", "date": "2026-07-14", "arrival": "2026-07-18", "store": "예스24", "buyer": "한성희", "qty": 1, "amount": null },
+  { "id": "h20260715", "date": "2026-07-15", "arrival": null, "store": "카카오(예스24)", "buyer": "한성희", "qty": 8, "amount": null },
+  { "id": "h20260717", "date": "2026-07-17", "arrival": null, "store": "카카오(예스24)", "buyer": "한성희", "qty": 2, "amount": null },
+  { "id": "h20260724", "date": "2026-07-24", "arrival": "2026-07-27", "store": "카카오(예스24)", "buyer": "한성희", "qty": 4, "amount": null }
+]
