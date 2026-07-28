@@ -11,5 +11,9 @@
   { "id": "h20260724", "date": "2026-07-24", "arrival": "2026-07-27", "store": "카카오(예스24)", "buyer": "한성희", "qty": 4, "amount": null },
   { "id": "s20260713", "date": "2026-07-13", "arrival": "2026-07-15", "store": "카카오(예스24)", "buyer": "신행철", "qty": 1, "amount": 15300 },
   { "id": "s20260715", "date": "2026-07-15", "arrival": "2026-07-18", "store": "예스24", "buyer": "신행철", "qty": 2, "amount": 30600 },
-  { "id": "s20260728", "date": "2026-07-28", "arrival": "2026-07-28", "store": "카카오(예스24)", "buyer": "신행철", "qty": 5, "amount": 76500 }
+  { "id": "s20260728", "date": "2026-07-28", "arrival": "2026-07-28", "store": "카카오(예스24)", "buyer": "신행철", "qty": 5, "amount": 76500 },
+  { "id": "k20260710", "date": "2026-07-10", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 7, "amount": null },
+  { "id": "k20260712", "date": "2026-07-12", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 2, "amount": null },
+  { "id": "k20260715", "date": "2026-07-15", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 8, "amount": null },
+  { "id": "k20260726", "date": "2026-07-26", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 3, "amount": null }
 ]
