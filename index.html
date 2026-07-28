@@ -511,6 +511,9 @@ function render(H) {
   <h2>순위 유지 가이드 <span>TOP 100 · 최근 7일 이동 구매합</span></h2>
   <div class="pguide" id="p-guide"></div>
 
+  <h2>일별 구매 권수</h2>
+  <div class="panel"><div class="chartbox"><canvas id="c_purchase"></canvas></div></div>
+
   <h2>구매 기록 추가 <span>직접 입력 · 이 브라우저에 저장</span></h2>
   <div class="panel">
     <div class="pform">
@@ -528,9 +531,6 @@ function render(H) {
       <button class="pbtn" id="p-add">추가</button>
     </div>
   </div>
-
-  <h2>일별 구매 권수</h2>
-  <div class="panel"><div class="chartbox"><canvas id="c_purchase"></canvas></div></div>
 
   <h2>구매 이력 <span id="p-count"></span></h2>
   <div id="p-tablewrap"></div>
