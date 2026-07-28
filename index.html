@@ -669,6 +669,21 @@ const pLoadLS = k => { try { return JSON.parse(localStorage.getItem(k)) || []; }
 const pSaveLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 let pChart = null;
 
+// 항상 표시할 구매자(데이터 없어도 0권으로 노출) + 색상
+const KNOWN_BUYERS = ["한성희", "신행철"];
+const BUYER_COLORS = { "한성희": "#c0392b", "신행철": "#1a5fb4" };
+const BUYER_PALETTE = ["#8e44ad", "#e67e22", "#16a085", "#d68910", "#2980b9"];
+function buyerColor(b) {
+  if (BUYER_COLORS[b]) return BUYER_COLORS[b];
+  let h = 0; for (const c of b) h = (h + c.charCodeAt(0)) % BUYER_PALETTE.length;
+  return BUYER_PALETTE[h];
+}
+function buyerList(rows) {
+  const found = [];
+  rows.forEach(r => { const b = r.buyer || "미지정"; if (!found.includes(b)) found.push(b); });
+  return [...KNOWN_BUYERS, ...found.filter(b => !KNOWN_BUYERS.includes(b))];
+}
+
 function pAll() {
   const add = pLoadLS(P_LS_ADD);
   const del = new Set(pLoadLS(P_LS_DEL));
@@ -693,12 +708,19 @@ function refreshPurchase() {
   const cnt = rows.length;
   const avg = q ? Math.round(amt / q) : null;
 
+  const buyers = buyerList(rows);
+  const buyerQty = {};
+  buyers.forEach(b => buyerQty[b] = 0);
+  rows.forEach(r => { const b = r.buyer || "미지정"; buyerQty[b] = (buyerQty[b] || 0) + (+r.qty || 0); });
+
   const sum = document.getElementById("p-summary");
-  if (sum) sum.innerHTML =
-    pMetric("총 구매 권수", nf(q) + '<small>권</small>', "#c0392b") +
-    pMetric("총 구매 금액", nf(amt) + '<small>원</small>', "#0a7f3f") +
-    pMetric("구매 건수", nf(cnt) + '<small>건</small>', "#1a5fb4") +
-    pMetric("평균 권당가", (avg ? nf(avg) : "—") + '<small>원</small>', "#8e44ad");
+  if (sum) {
+    let cards = pMetric("총 구매 권수", nf(q) + '<small>권</small>', "#111");
+    buyers.forEach(b => { cards += pMetric(b + " 권수", nf(buyerQty[b]) + '<small>권</small>', buyerColor(b)); });
+    cards += pMetric("구매 건수", nf(cnt) + '<small>건</small>', "#888");
+    cards += pMetric("총 구매 금액", nf(amt) + '<small>원</small>', "#0a7f3f");
+    sum.innerHTML = cards;
+  }
 
   const cEl = document.getElementById("p-count");
   if (cEl) cEl.textContent = cnt ? `(${cnt}건)` : "";
@@ -726,21 +748,40 @@ function refreshPurchase() {
     }
   }
 
-  const byDay = {};
-  rows.forEach(r => { if (r.date) byDay[r.date] = (byDay[r.date] || 0) + (+r.qty || 0); });
-  const ds = Object.keys(byDay).sort();
+  const byDayBuyer = {};
+  rows.forEach(r => {
+    if (!r.date) return;
+    const b = r.buyer || "미지정";
+    byDayBuyer[r.date] = byDayBuyer[r.date] || {};
+    byDayBuyer[r.date][b] = (byDayBuyer[r.date][b] || 0) + (+r.qty || 0);
+  });
+  const ds = Object.keys(byDayBuyer).sort();
   const cv = document.getElementById("c_purchase");
   if (cv) {
     if (pChart) pChart.destroy();
+    const datasets = buyers.map(b => ({
+      label: b,
+      data: ds.map(d => (byDayBuyer[d] && byDayBuyer[d][b]) || 0),
+      backgroundColor: buyerColor(b),
+      borderRadius: 4,
+      maxBarThickness: 26
+    }));
+    // 날짜(윗줄) + 구매자별 권수(아랫줄, 예: "한 2 · 신 0")
+    const clabels = ds.map(d => {
+      const md = d.slice(5);
+      const line2 = buyers.map(b => `${b.charAt(0)} ${(byDayBuyer[d] && byDayBuyer[d][b]) || 0}`).join(" · ");
+      return [md, line2];
+    });
     pChart = new Chart(cv, {
       type: "bar",
-      data: { labels: ds.map(d => d.slice(5)), datasets: [
-        { label: "구매 권수", data: ds.map(d => byDay[d]), backgroundColor: "#c0392b", borderRadius: 4, maxBarThickness: 34 }
-      ]},
+      data: { labels: clabels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } } },
-        plugins: { legend: { display: false } }
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+          x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: false, font: { size: 10 } } }
+        },
+        plugins: { legend: { display: true, position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } }
       }
     });
   }
