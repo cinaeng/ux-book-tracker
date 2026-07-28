@@ -260,6 +260,14 @@ async function collectKyobo(browser) {
     // (1) 상품 상세 — 뱃지 순위 + 리뷰. 이 뱃지는 '온라인 주간' 순위다.
     await page.goto(K.product, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForSelector("main", { timeout: 25000 });
+    // 리뷰 수·평점(클로버 위젯)은 초기 렌더 이후 비동기로 채워진다.
+    // "리뷰(5)" / "리뷰 5" 처럼 숫자가 붙을 때까지 기다린 뒤 읽어야 0으로 새지 않는다.
+    await page
+      .waitForFunction(
+        () => /리뷰\s*\(?\s*\d+/.test(document.body.innerText),
+        { timeout: 15000 }
+      )
+      .catch(() => {});
     const text = await page.evaluate(() => document.body.innerText);
 
     const badge = text.match(/주간베스트[\s\S]{0,30}?경제\/경영\s*([\d,]+)\s*위/);
