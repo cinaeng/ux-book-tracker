@@ -265,16 +265,22 @@ async function collectKyobo(browser) {
     const badge = text.match(/주간베스트[\s\S]{0,30}?경제\/경영\s*([\d,]+)\s*위/);
     if (badge) meta.badge_rank = Number(badge[1].replace(/,/g, ""));
 
-    // 리뷰 수: 상단 "(N개의 리뷰)" 또는 하단 "Klover 리뷰 (N)"
+    // 리뷰 수 — 현재 교보 레이아웃은 탭 라벨 "리뷰(5)" 와 요약 "… 10.0 리뷰 5" 로 표기한다.
+    //   (구 레이아웃의 "(N개의 리뷰)" / "Klover 리뷰 (N)" 는 더 이상 나오지 않는다)
+    //   탭 라벨(괄호형)을 최우선으로 읽고, 안 되면 요약형·구형 순으로 폴백한다.
     const rv =
-      text.match(/\((\d+)\s*개의 리뷰\)/) || text.match(/Klover\s*리뷰\s*\((\d+)\)/);
+      text.match(/리뷰\s*\(\s*(\d+)\s*\)/) ||        // 탭 라벨 "리뷰(5)"
+      text.match(/리뷰\s+(\d+)\b/) ||                 // 요약 "리뷰 5"
+      text.match(/\((\d+)\s*개의 리뷰\)/) ||          // 구 레이아웃 "(5개의 리뷰)"
+      text.match(/Klover\s*리뷰\s*\(?\s*(\d+)\)?/);   // 구 레이아웃 "Klover 리뷰 (5)"
     if (rv) meta.reviews = Number(rv[1]);
 
-    // 평점: 리뷰 수 바로 앞의 소수점 점수 (예: "9.4\n(102개의 리뷰)"). 리뷰 0건이면 0.0 → null 처리
-    const rt = text.match(/([\d.]+)\s*\n?\s*\(\d+\s*개의 리뷰\)/);
+    // 평점 — 요약 헤더에서 "리뷰 N" 바로 앞의 소수 점수 (예: "10.0 리뷰 5").
+    //   리뷰 0건이거나 점수가 범위를 벗어나면 null 처리.
+    const rt = text.match(/(\d{1,2}(?:\.\d)?)\s*리뷰\s+\d+\b/);
     if (rt) {
       const v = Number(rt[1]);
-      meta.rating = meta.reviews > 0 && v > 0 ? v : null;
+      meta.rating = meta.reviews > 0 && v > 0 && v <= 10 ? v : null;
     }
 
     // ⚠️ 교보문고는 판매지수를 공개하지 않는다 (예스24 판매지수 / 알라딘 Sales Point 같은 지표 없음).
