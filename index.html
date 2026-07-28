@@ -493,6 +493,7 @@ function render(H) {
 
 <div class="pane" id="pane-purchase">
   <div class="cards" id="p-summary"></div>
+  <div class="metrics" id="p-metrics"></div>
 
   <h2>구매 기록 추가 <span>직접 입력 · 이 브라우저에 저장</span></h2>
   <div class="panel">
@@ -719,9 +720,22 @@ function refreshPurchase() {
   if (sum) {
     let cards = pMetric("총 구매 권수", nf(q) + '<small>권</small>', "#111");
     buyers.forEach(b => { cards += pMetric(b + " 권수", nf(buyerQty[b]) + '<small>권</small>', buyerColor(b)); });
-    cards += pMetric("구매 건수", nf(cnt) + '<small>건</small>', "#888");
-    cards += pMetric("총 구매 금액", nf(amt) + '<small>원</small>', "#0a7f3f");
     sum.innerHTML = cards;
+  }
+
+  // 카드 아래 텍스트 줄 — 구매 건수 · 총 구매 금액 · 서점별 구매권수
+  const storeQty = {};
+  rows.forEach(r => { const s = r.store || "기타"; storeQty[s] = (storeQty[s] || 0) + (+r.qty || 0); });
+  const storeOrder = ["예스24", "카카오(예스24)", "카카오톡 선물하기"];
+  const stores = [...storeOrder.filter(s => storeQty[s]), ...Object.keys(storeQty).filter(s => !storeOrder.includes(s))];
+
+  const metricsEl = document.getElementById("p-metrics");
+  if (metricsEl) {
+    const parts = [];
+    parts.push(`<span class="metric"><span class="mlbl">구매 건수</span> <b>${nf(cnt)}건</b></span>`);
+    parts.push(`<span class="metric"><span class="mlbl">총 구매 금액</span> <b>${nf(amt)}원</b></span>`);
+    stores.forEach(s => parts.push(`<span class="metric"><span class="mlbl">${s}</span> <b>${nf(storeQty[s])}권</b></span>`));
+    metricsEl.innerHTML = parts.join('<span class="msep">·</span>');
   }
 
   const cEl = document.getElementById("p-count");
