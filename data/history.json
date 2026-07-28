@@ -644,15 +644,15 @@
     }
   },
   {
-    "ts": "2026-07-29T00:08:40.721+09:00",
+    "ts": "2026-07-29T05:11:05.253+09:00",
     "yes24": {
-      "econ_rank": 161,
-      "mkt_rank": 10,
+      "econ_rank": 144,
+      "mkt_rank": 9,
       "ad_rank": 2,
       "web_rank": 1,
       "uxui_rank": 1,
-      "design_rank": 1,
-      "sales_index": 4107,
+      "design_rank": 2,
+      "sales_index": 4287,
       "reviews": 12,
       "rating": 10
     },
@@ -669,7 +669,7 @@
       "designcraft_rank": null
     },
     "kyobo_online": {
-      "econ_weekly": 510,
+      "econ_weekly": 590,
       "econ_daily": null,
       "it_daily": null,
       "website_cat": null,
@@ -680,7 +680,7 @@
       "tech_weekly": null
     },
     "kyobo_meta": {
-      "badge_rank": 510,
+      "badge_rank": 590,
       "reviews": 0,
       "rating": null
     }
