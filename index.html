@@ -800,6 +800,7 @@ function mountPurchase() {
     const amount = ar ? parseInt(ar, 10) : null;
     if (!date) { alert("주문일을 입력하세요."); return; }
     if (!qty || qty < 1) { alert("수량을 1 이상 입력하세요."); return; }
+    if (!confirm("등록할까요?")) return;
     pAdd({ id: "m" + Date.now(), date, arrival, store, buyer, qty, amount });
     document.getElementById("p-amount").value = "";
     document.getElementById("p-qty").value = "1";
