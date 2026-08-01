@@ -157,6 +157,17 @@
   .pbtn:hover { background: #333; }
   .pdel { font-family: inherit; cursor: pointer; font-size: 11px; color: #c0392b; background: none; border: 1px solid #e6bcbc; border-radius: 6px; padding: 3px 9px; }
   .pdel:hover { background: #fbeaea; }
+  .pedit { font-family: inherit; cursor: pointer; font-size: 11px; color: #1a5fb4; background: none; border: 1px solid #bcd5f0; border-radius: 6px; padding: 3px 9px; }
+  .pedit:hover { background: #eef5fd; }
+  /* 수정 팝업 */
+  .pmodal { position: fixed; inset: 0; background: rgba(0,0,0,.42); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+  .pmodal[hidden] { display: none; }
+  .pmodal-box { background: #fff; border-radius: 14px; padding: 20px 22px; max-width: 620px; width: 100%; box-shadow: 0 12px 44px rgba(0,0,0,.22); }
+  .pmodal-title { font-size: 15px; font-weight: 700; margin: 0 0 14px; }
+  .pmodal-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .pbtn-ghost { background: #eee; color: #333; }
+  .pbtn-ghost:hover { background: #ddd; }
+  .pmodal-note { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.5; }
   .pempty { font-size: 12.5px; color: #aaa; padding: 26px; text-align: center; border: 1px dashed #e0e0de; border-radius: 12px; background: #fff; }
 
   /* 순위 유지 가이드 */
@@ -542,6 +553,31 @@ function render(H) {
     이렇게 넣은 기록은 자동 갱신되어 모든 기기에서 보입니다.<br>
     <b>집계 기준</b> — 합계·일별 차트는 <b>주문일</b> 기준입니다(판매 순위에 반영되는 시점). 도착일은 참고용으로만 저장됩니다.
   </div>
+
+  <!-- 구매 기록 수정 팝업 -->
+  <div class="pmodal" id="p-modal" hidden>
+    <div class="pmodal-box">
+      <h3 class="pmodal-title">구매 기록 수정</h3>
+      <div class="pform">
+        <div class="pfield"><label>주문일</label><input type="date" id="pe-date"></div>
+        <div class="pfield"><label>도착일(선택)</label><input type="date" id="pe-arrival"></div>
+        <div class="pfield"><label>서점</label>
+          <select id="pe-store">
+            <option>예스24 선물하기</option><option>카카오톡 선물하기</option><option>예스24</option><option>알라딘</option><option>교보문고</option>
+            <option>인터파크</option><option>영풍문고</option><option>기타</option>
+          </select>
+        </div>
+        <div class="pfield"><label>구매자</label><input type="text" id="pe-buyer" placeholder="이름" style="width:112px"></div>
+        <div class="pfield"><label>수량(권)</label><input type="number" id="pe-qty" min="1" step="1"></div>
+        <div class="pfield"><label>금액(원)</label><input type="number" id="pe-amount" min="0" step="100" placeholder="선택"></div>
+      </div>
+      <div class="pmodal-actions">
+        <button class="pbtn" id="pe-save">저장</button>
+        <button class="pbtn pbtn-ghost" id="pe-cancel">취소</button>
+      </div>
+      <div class="pmodal-note" id="pe-source"></div>
+    </div>
+  </div>
 </div>
 
 <div class="foot">
@@ -691,8 +727,10 @@ function render(H) {
 let PBASE = [];
 const P_LS_ADD = "uxbt_purchases_add";
 const P_LS_DEL = "uxbt_purchases_del";
+const P_LS_EDIT = "uxbt_purchases_edit"; // { id: {date,arrival,store,buyer,qty,amount} } 편집 오버라이드(원본 데이터 수정용)
 const pLoadLS = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } };
 const pSaveLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const pLoadObj = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } };
 let pChart = null;
 let LATEST_ECON = null; // 최신 예스24 경제경영 종합 순위 (가이드 권장량 계산에 사용)
 
@@ -714,8 +752,10 @@ function buyerList(rows) {
 function pAll() {
   const add = pLoadLS(P_LS_ADD);
   const del = new Set(pLoadLS(P_LS_DEL));
+  const edits = pLoadObj(P_LS_EDIT);
   return [...PBASE, ...add]
     .filter(r => r && !del.has(r.id))
+    .map(r => edits[r.id] ? Object.assign({}, r, edits[r.id]) : r)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }
 function pMetric(label, val, color) {
@@ -727,6 +767,51 @@ function pDelete(id) {
   if (a.some(r => r.id === id)) { a = a.filter(r => r.id !== id); pSaveLS(P_LS_ADD, a); }
   else { const d = pLoadLS(P_LS_DEL); if (!d.includes(id)) { d.push(id); pSaveLS(P_LS_DEL, d); } }
   refreshPurchase();
+}
+// 편집 저장: 직접입력분은 그 자리서 수정, 원본 데이터는 오버라이드로 저장(이 브라우저 한정)
+function pApplyEdit(id, rec) {
+  const add = pLoadLS(P_LS_ADD);
+  const i = add.findIndex(r => r.id === id);
+  if (i >= 0) { add[i] = Object.assign({}, add[i], rec); pSaveLS(P_LS_ADD, add); }
+  else { const e = pLoadObj(P_LS_EDIT); e[id] = rec; pSaveLS(P_LS_EDIT, e); }
+  refreshPurchase();
+}
+let P_EDIT_ID = null;
+function openEditModal(id) {
+  const rec = pAll().find(r => r.id === id);
+  if (!rec) return;
+  P_EDIT_ID = id;
+  document.getElementById("pe-date").value = rec.date || "";
+  document.getElementById("pe-arrival").value = rec.arrival || "";
+  document.getElementById("pe-store").value = rec.store || "예스24 선물하기";
+  document.getElementById("pe-buyer").value = rec.buyer || "";
+  document.getElementById("pe-qty").value = rec.qty != null ? rec.qty : 1;
+  document.getElementById("pe-amount").value = (rec.amount != null && rec.amount !== "") ? rec.amount : "";
+  const src = document.getElementById("pe-source");
+  if (src) src.textContent = (pLoadLS(P_LS_ADD).some(r => r.id === id))
+    ? "직접 입력한 기록 — 이 브라우저에 저장됩니다."
+    : "원본 데이터 기록 — 이 브라우저에만 반영됩니다(모든 기기 반영은 채팅으로 요청).";
+  const m = document.getElementById("p-modal");
+  if (m) m.hidden = false;
+}
+function closeEditModal() {
+  P_EDIT_ID = null;
+  const m = document.getElementById("p-modal");
+  if (m) m.hidden = true;
+}
+function saveEditModal() {
+  if (!P_EDIT_ID) return;
+  const date = document.getElementById("pe-date").value;
+  const arrival = document.getElementById("pe-arrival").value || null;
+  const store = document.getElementById("pe-store").value;
+  const buyer = document.getElementById("pe-buyer").value.trim() || null;
+  const qty = parseInt(document.getElementById("pe-qty").value, 10);
+  const ar = document.getElementById("pe-amount").value;
+  const amount = ar ? parseInt(ar, 10) : null;
+  if (!date) { alert("주문일을 입력하세요."); return; }
+  if (!qty || qty < 1) { alert("수량을 1 이상 입력하세요."); return; }
+  pApplyEdit(P_EDIT_ID, { date, arrival, store, buyer, qty, amount });
+  closeEditModal();
 }
 function refreshPurchase() {
   const rows = pAll();
@@ -849,10 +934,11 @@ function refreshPurchase() {
           <td style="text-align:left">${r.buyer || "—"}</td>
           <td>${nf(+r.qty || 0)}권</td>
           <td>${(r.amount != null && r.amount !== "") ? nf(+r.amount) + "원" : "—"}</td>
-          <td><button class="pdel" data-id="${r.id}">삭제</button></td>
+          <td style="white-space:nowrap"><button class="pedit" data-id="${r.id}">수정</button> <button class="pdel" data-id="${r.id}">삭제</button></td>
         </tr>`).join("") +
         `</tbody></table>`;
       tw.querySelectorAll(".pdel").forEach(b => { b.onclick = () => pDelete(b.dataset.id); });
+      tw.querySelectorAll(".pedit").forEach(b => { b.onclick = () => openEditModal(b.dataset.id); });
     }
   }
 
@@ -914,6 +1000,13 @@ function mountPurchase() {
     document.getElementById("p-qty").value = "1";
     document.getElementById("p-arrival").value = "";
   };
+  // 수정 모달 버튼 배선
+  const saveBtn = document.getElementById("pe-save");
+  if (saveBtn) saveBtn.onclick = saveEditModal;
+  const cancelBtn = document.getElementById("pe-cancel");
+  if (cancelBtn) cancelBtn.onclick = closeEditModal;
+  const modal = document.getElementById("p-modal");
+  if (modal) modal.onclick = (e) => { if (e.target === modal) closeEditModal(); };
   refreshPurchase();
 }
 function pLoadBase() {
