@@ -263,6 +263,7 @@ function resetCharts() {
 function render(H) {
   resetCharts();
   const cur = H[H.length - 1];
+  LATEST_ECON = (cur.yes24 && cur.yes24.econ_rank != null) ? cur.yes24.econ_rank : null;
   const pre = H.length > 1 ? H[H.length - 2] : {};
   const days = Math.floor((new Date(cur.ts) - new Date(BOOK.pubdate + "T00:00:00+09:00")) / 864e5);
   const labels = H.map(h => fmtTs(h.ts));
@@ -693,6 +694,7 @@ const P_LS_DEL = "uxbt_purchases_del";
 const pLoadLS = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } };
 const pSaveLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 let pChart = null;
+let LATEST_ECON = null; // 최신 예스24 경제경영 종합 순위 (가이드 권장량 계산에 사용)
 
 // 항상 표시할 구매자(데이터 없어도 0권으로 노출) + 색상
 const KNOWN_BUYERS = ["한성희", "신행철"];
@@ -781,14 +783,29 @@ function refreshPurchase() {
       const diff = Math.round((today - d) / 864e5);
       if (diff >= 0 && diff <= 6) last7 += (+r.qty || 0);
     });
-    const recToday = Math.max(0, Math.min(P_DAILY_CAP, P_TARGET - last7));
+    // 기본 권장량: 7일 창을 목표(14권)로 채우는 페이스
+    let recToday = Math.max(0, Math.min(P_DAILY_CAP, P_TARGET - last7));
     let statusText, statusColor;
     if (last7 < P_BAND_LO) { statusText = "부족 — 순위 하락 위험"; statusColor = "#c0392b"; }
     else if (last7 <= 18) { statusText = "적정 — TOP 100 방어선"; statusColor = "#0a7f3f"; }
     else { statusText = "여유 — 하루 1권으로 절감 가능"; statusColor = "#1a5fb4"; }
+
+    // 실제 예스24 경제경영 순위를 반영해 권장량을 조정한다.
+    // (창 유지만으론 순위 하락을 못 잡는다 — 목표선 100위에서 벗어날수록 더 산다)
+    let rankLine = "";
+    const r = LATEST_ECON;
+    if (r != null) {
+      if (r > 150) { recToday = P_DAILY_CAP; statusColor = "#c0392b"; rankLine = `경제경영 <b>${nf(r)}위</b> — 100위권 밖, 회복 위해 상향 필요`; }
+      else if (r > 100) { recToday = Math.max(recToday, 3); statusColor = "#c0392b"; rankLine = `경제경영 <b>${nf(r)}위</b> — 100위 회복 위해 상향`; }
+      else if (r > 85) { recToday = Math.max(recToday, 3); rankLine = `경제경영 <b>${nf(r)}위</b> — 100위 근접, 약간 상향`; }
+      else if (r <= 60) { recToday = Math.min(recToday, 1); rankLine = `경제경영 <b>${nf(r)}위</b> — 여유, 하향 가능`; }
+      else { rankLine = `경제경영 <b>${nf(r)}위</b> — 방어선 안, 페이스 유지`; }
+    }
+
     let recNote;
     if (recToday === 0) recNote = "오늘은 안 사도 밴드 유지";
-    else if (recToday >= P_DAILY_CAP) recNote = "부족분은 2~3일 나눠 채우기(몰아 사기 금지)";
+    else if (recToday >= P_DAILY_CAP) recNote = "순위 회복까지 며칠간 상향(하루 4권, 몰아 사기 아님)";
+    else if (recToday >= 3) recNote = "순위 방어 위해 약간 상향";
     else recNote = "매일 2권 페이스 유지";
     const barPct = Math.max(0, Math.min(100, Math.round(last7 / P_SCALE * 100)));
     const bandLeft = P_BAND_LO / P_SCALE * 100, bandW = (P_BAND_HI - P_BAND_LO) / P_SCALE * 100;
@@ -805,11 +822,12 @@ function refreshPurchase() {
           <div class="pg-note">${recNote}</div>
         </div>
       </div>
+      ${rankLine ? `<div class="pg-note" style="margin:10px 0 0;font-size:12px">↳ ${rankLine}</div>` : ""}
       <div class="pg-bar">
         <div class="pg-fill" style="width:${barPct}%;background:${statusColor}"></div>
         <div class="pg-band" style="left:${bandLeft}%;width:${bandW}%"></div>
       </div>
-      <div class="pg-cap">초록 구간이 목표 밴드 <b>${P_BAND_LO}~${P_BAND_HI}권</b> (TOP 100 · 하루 2권 기준) · 몰아 사기 금지, 매일 얇게 · 85위 넘으면 하루 3권으로 상향</div>`;
+      <div class="pg-cap">초록 구간이 목표 밴드 <b>${P_BAND_LO}~${P_BAND_HI}권</b> (TOP 100 · 하루 2권 기준) · 권장량은 <b>현재 예스24 경제경영 순위</b>를 반영해 자동 조정 · 몰아 사기 금지, 매일 얇게</div>`;
   }
 
   const cEl = document.getElementById("p-count");
