@@ -521,7 +521,7 @@ function render(H) {
       <div class="pfield"><label>도착일(선택)</label><input type="date" id="p-arrival"></div>
       <div class="pfield"><label>서점</label>
         <select id="p-store">
-          <option>예스24 선물하기 (카톡)</option><option>예스24</option><option>알라딘</option><option>교보문고</option>
+          <option>예스24 선물하기</option><option>예스24</option><option>알라딘</option><option>교보문고</option>
           <option>인터파크</option><option>영풍문고</option><option>기타</option>
         </select>
       </div>
@@ -747,7 +747,7 @@ function refreshPurchase() {
     storeBuyerQty[s] = storeBuyerQty[s] || {};
     storeBuyerQty[s][b] = (storeBuyerQty[s][b] || 0) + (+r.qty || 0);
   });
-  const storeOrder = ["예스24", "예스24 선물하기 (카톡)", "카카오톡 선물하기"];
+  const storeOrder = ["예스24", "예스24 선물하기", "카카오톡 선물하기"];
   const stores = [...storeOrder.filter(s => storeQty[s]), ...Object.keys(storeQty).filter(s => !storeOrder.includes(s))];
 
   const metricsEl = document.getElementById("p-metrics");
