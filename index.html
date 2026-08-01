@@ -603,8 +603,14 @@ function render(H) {
     b.classList.add("on");
     document.querySelectorAll("#pane-yes24, #pane-aladin, #pane-kyobo, #pane-purchase").forEach(p => p.classList.remove("on"));
     document.getElementById("pane-" + b.dataset.tab).classList.add("on");
+    location.hash = b.dataset.tab;
     if (b.dataset.tab === "purchase" && pChart) setTimeout(() => pChart.resize(), 0);
   });
+  // URL 해시로 특정 탭 바로 열기 — 예: .../#purchase 에서 새로고침하면 구매내역 탭이 유지된다.
+  // 탭: #yes24 · #aladin · #kyobo · #purchase
+  const hashTab = (location.hash || "").replace(/^#/, "");
+  const hashBtn = hashTab && document.querySelector('.tabs button[data-tab="' + hashTab + '"]');
+  if (hashBtn) hashBtn.click();
   document.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".subtabs button").forEach(x => x.classList.remove("on"));
     b.classList.add("on");
