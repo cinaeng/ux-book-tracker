@@ -611,7 +611,7 @@ function render(H) {
     };
 
     try {
-      await pLoadBase();
+      await Promise.all([pLoadBase(), pLoadSheet()]);
       const r = await fetch("./data/history.json?t=" + Date.now(), { cache: "no-store" });
       if (!r.ok) throw new Error(r.status);
       const fresh = await r.json();
@@ -753,7 +753,7 @@ function pAll() {
   const add = pLoadLS(P_LS_ADD);
   const del = new Set(pLoadLS(P_LS_DEL));
   const edits = pLoadObj(P_LS_EDIT);
-  return [...PBASE, ...add]
+  return [...PBASE, ...SHEET_ROWS, ...add]
     .filter(r => r && !del.has(r.id))
     .map(r => edits[r.id] ? Object.assign({}, r, edits[r.id]) : r)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -1016,8 +1016,48 @@ function pLoadBase() {
     .catch(() => { PBASE = []; });
 }
 
+/* ===================== 구글시트(한성희) 병합 ===================== */
+// 성희님이 입력하는 구글시트(마케팅 탭, 웹에 게시된 CSV). 신행철 데이터(purchases.json)와 합쳐 표시.
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT01BzFAcJc1ap1tmT-H_uJ8NwYtJ9X3ulmnlrAxKddKbUijp_JG9Y5CWI7BJMKWsyQAUms7HqpS7zL/pub?output=csv";
+const SHEET_BUYER = "한성희";
+const SHEET_STORE_MAP = {
+  "카카오톡선물하기": "카카오톡 선물하기", "카카오톡 선물하기": "카카오톡 선물하기",
+  "카카오(예스24)": "카카오톡 선물하기",
+  "예스24선물하기": "예스24 선물하기", "예스24 선물하기": "예스24 선물하기",
+  "예스24": "예스24", "교보": "교보문고", "교보문고": "교보문고", "알라딘": "알라딘"
+};
+let SHEET_ROWS = [];
+function sheetDate(s) { // "7/8" → "2026-07-08"
+  const m = String(s || "").trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+  const p = n => String(n).padStart(2, "0");
+  return "2026-" + p(m[1]) + "-" + p(m[2]);
+}
+function parseSheetCSV(text) {
+  const out = [];
+  let idx = 0;
+  for (const line of text.split(/\r?\n/)) {
+    const cols = line.split(","); // 데이터 행엔 콤마 없는 값만 들어옴(메모행은 날짜 필터로 제외)
+    const date = sheetDate(cols[0]);
+    if (!date) continue; // 헤더·합계·메모행 건너뜀
+    const qty = parseInt((cols[3] || "").replace(/[^\d]/g, ""), 10);
+    if (!qty || qty < 1) continue;
+    const raw = (cols[2] || "").trim();
+    const store = SHEET_STORE_MAP[raw] || raw || "기타";
+    idx++;
+    out.push({ id: "sheet_" + date + "_" + idx, date, arrival: sheetDate(cols[1]), store, buyer: SHEET_BUYER, qty, amount: qty * 15300 });
+  }
+  return out;
+}
+function pLoadSheet() {
+  return fetch(SHEET_CSV_URL, { cache: "no-store" })
+    .then(r => r.ok ? r.text() : "")
+    .then(t => { SHEET_ROWS = t ? parseSheetCSV(t) : []; })
+    .catch(() => { SHEET_ROWS = []; });
+}
+
 /* ===================== 부팅 ===================== */
-pLoadBase().finally(() => {
+Promise.all([pLoadBase(), pLoadSheet()]).finally(() => {
   fetch("./data/history.json?t=" + Date.now())
     .then(r => { if (!r.ok) throw new Error("history.json 로드 실패 (" + r.status + ")"); return r.json(); })
     .then(H => {
