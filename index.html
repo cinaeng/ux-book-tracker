@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="buyer-filter-sheetF">
+<meta name="tracker-build" content="buyer-knownnames">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -1052,6 +1052,7 @@ function pLoadBase() {
 // 성희님이 입력하는 구글시트(마케팅 탭, 웹에 게시된 CSV). 신행철 데이터(purchases.json)와 합쳐 표시.
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT01BzFAcJc1ap1tmT-H_uJ8NwYtJ9X3ulmnlrAxKddKbUijp_JG9Y5CWI7BJMKWsyQAUms7HqpS7zL/pub?output=csv";
 const SHEET_BUYER = "한성희";
+const SHEET_KNOWN_BUYERS = ["한성희", "신행철"]; // 시트에서 구매자로 인정하는 이름(메모와 구분)
 const SHEET_STORE_MAP = {
   "카카오톡선물하기": "카카오톡 선물하기", "카카오톡 선물하기": "카카오톡 선물하기",
   "카카오(예스24)": "카카오톡 선물하기",
@@ -1076,9 +1077,14 @@ function parseSheetCSV(text) {
     if (!qty || qty < 1) continue;
     const raw = (cols[2] || "").trim();
     const store = SHEET_STORE_MAP[raw] || raw || "기타";
-    // 6번째 칸(F열=구매자)에 이름이 있으면 그 사람 것으로, 없으면 한성희로.
-    // (5번째 칸 E열은 한성희 님이 쓰는 메모칸이라 건드리지 않는다)
-    const buyer = (cols[5] || "").trim() || SHEET_BUYER;
+    // 구매자: 수량 칸(4번째) 이후의 어느 칸이든 '알려진 이름'이 있으면 그 사람 것으로 인정한다.
+    // 메모칸(E열: "와이프 구매", "예스24 선물하기" 등)은 이름이 아니므로 절대 구매자로 잡히지 않는다.
+    // 아무 이름도 없으면 한성희로 처리(기존 데이터 호환).
+    let buyer = SHEET_BUYER;
+    for (let i = 4; i < cols.length; i++) {
+      const v = (cols[i] || "").trim();
+      if (SHEET_KNOWN_BUYERS.includes(v)) { buyer = v; break; }
+    }
     idx++;
     out.push({ id: "sheet_" + date + "_" + idx, date, arrival: sheetDate(cols[1]), store, buyer, qty, amount: qty * 15300 });
   }
