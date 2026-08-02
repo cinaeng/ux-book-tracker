@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="buyer-knownnames">
+<meta name="tracker-build" content="sheet-write">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -534,7 +534,7 @@ function render(H) {
   <h2>일별 구매 권수</h2>
   <div class="panel"><div class="chartbox"><canvas id="c_purchase"></canvas></div></div>
 
-  <h2>구매 기록 추가 <span>직접 입력 · 이 브라우저에 저장</span></h2>
+  <h2>구매 기록 추가 <span>직접 입력 · 성희·행철 공유(구글시트 저장)</span></h2>
   <div class="panel">
     <div class="pform">
       <div class="pfield"><label>주문일</label><input type="date" id="p-date"></div>
@@ -545,7 +545,7 @@ function render(H) {
           <option>인터파크</option><option>영풍문고</option><option>기타</option>
         </select>
       </div>
-      <div class="pfield"><label>구매자</label><input type="text" id="p-buyer" placeholder="이름" style="width:112px"></div>
+      <div class="pfield"><label>구매자</label><input type="text" id="p-buyer" placeholder="한성희/신행철" style="width:112px"></div>
       <div class="pfield"><label>수량(권)</label><input type="number" id="p-qty" min="1" step="1" value="1"></div>
       <div class="pfield"><label>금액(원)</label><input type="number" id="p-amount" min="0" step="100" placeholder="선택"></div>
       <button class="pbtn" id="p-add">추가</button>
@@ -567,7 +567,7 @@ function render(H) {
     <b>맨 끝 칸(F열=구매자)</b>에 본인 이름(한성희/신행철)을 적으면 됩니다. 비워두면 한성희로 처리됩니다.
     <a class="pnote-btn" href="https://docs.google.com/spreadsheets/d/1pJLy9cvkYcC7sns9yP4zCgXZyLIyIw9H1QPNfRfssuM/edit?gid=1657306611" target="_blank" rel="noopener">📝 공용 구글시트 열기</a>
     <br><br>
-    <b>위 “구매 기록 추가” 폼</b>은 <b>이 브라우저에만</b> 저장되는 개인 메모용입니다(다른 사람에겐 안 보임).
+    <b>위 “구매 기록 추가” 폼</b>도 이제 구글시트에 저장돼 <b>두 사람 모두</b> 볼 수 있습니다(저장 후 시트 게시 갱신까지 몇 분 뒤 새로고침 시 정식 반영). 구매자 칸은 <b>한성희/신행철</b>로 적어주세요(비우면 한성희).
     영수증·주문내역 이미지는 채팅에 올려주시면 제가 읽어 공용 기록에 반영합니다.<br>
     <b>집계 기준</b> — 합계·일별 차트는 <b>주문일</b> 기준입니다(판매 순위에 반영되는 시점). 도착일은 참고용으로만 저장됩니다.
   </div>
@@ -781,6 +781,26 @@ function pMetric(label, val, color) {
   return `<div class="card"><div class="lbl"><span class="dot" style="background:${color}"></span>${label}</div><div class="val">${val}</div></div>`;
 }
 function pAdd(rec) { const a = pLoadLS(P_LS_ADD); a.push(rec); pSaveLS(P_LS_ADD, a); refreshPurchase(); }
+// 폼 입력을 구글시트에 저장(공유). SHEET_WRITE_URL이 없으면 이 브라우저에만 저장(pAdd)으로 폴백.
+async function pAddShared(rec) {
+  if (!SHEET_WRITE_URL) { pAdd(rec); return; }
+  const body = JSON.stringify({
+    date: toMD(rec.date), arrival: rec.arrival ? toMD(rec.arrival) : "",
+    store: rec.store, qty: rec.qty, memo: "",
+    buyer: SHEET_KNOWN_BUYERS.includes(rec.buyer) ? rec.buyer : ""  // 알려진 이름만, 아니면 비워 한성희 처리
+  });
+  try {
+    // no-cors: 응답은 못 읽지만 시트에는 정상 추가된다(프리플라이트 회피).
+    await fetch(SHEET_WRITE_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
+    // 낙관적 반영: 시트 게시(CSV) 갱신 전까지 화면에 바로 보이도록 임시 추가.
+    SHEET_ROWS.push({ id: "pending_" + Date.now(), date: rec.date, arrival: rec.arrival || null, store: rec.store, buyer: SHEET_KNOWN_BUYERS.includes(rec.buyer) ? rec.buyer : SHEET_BUYER, qty: rec.qty, amount: (+rec.qty || 0) * 15300 });
+    refreshPurchase();
+    alert("구글시트에 저장했어요. 두 사람 모두 보이게 됩니다.\n(시트 게시 갱신까지 몇 분 걸릴 수 있어요. 새로고침 시 정식 반영)");
+  } catch (e) {
+    pAdd(rec);
+    alert("시트 저장에 실패해 이 브라우저에만 저장했습니다. 잠시 후 다시 시도해 주세요.");
+  }
+}
 function pDelete(id) {
   let a = pLoadLS(P_LS_ADD);
   if (a.some(r => r.id === id)) { a = a.filter(r => r.id !== id); pSaveLS(P_LS_ADD, a); }
@@ -1020,7 +1040,7 @@ function mountPurchase() {
     if (!date) { alert("주문일을 입력하세요."); return; }
     if (!qty || qty < 1) { alert("수량을 1 이상 입력하세요."); return; }
     if (!confirm("등록할까요?")) return;
-    pAdd({ id: "m" + Date.now(), date, arrival, store, buyer, qty, amount });
+    pAddShared({ id: "m" + Date.now(), date, arrival, store, buyer, qty, amount });
     document.getElementById("p-amount").value = "";
     document.getElementById("p-qty").value = "1";
     document.getElementById("p-arrival").value = "";
@@ -1053,6 +1073,10 @@ function pLoadBase() {
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT01BzFAcJc1ap1tmT-H_uJ8NwYtJ9X3ulmnlrAxKddKbUijp_JG9Y5CWI7BJMKWsyQAUms7HqpS7zL/pub?output=csv";
 const SHEET_BUYER = "한성희";
 const SHEET_KNOWN_BUYERS = ["한성희", "신행철"]; // 시트에서 구매자로 인정하는 이름(메모와 구분)
+// 대시보드 폼 입력을 구글시트에 바로 저장하는 Apps Script 웹앱 주소.
+// (비어 있으면 폼은 이 브라우저에만 저장된다. 배포 후 URL을 여기에 넣는다)
+const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxQKKzl1Pav_YF_TaU5y9KogAB9wpxiho7OzJxM9Slej2bDfCI3lJFhKz6w_ucRf41Y/exec";
+function toMD(iso) { const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? (+m[2]) + "/" + (+m[3]) : (iso || ""); }
 const SHEET_STORE_MAP = {
   "카카오톡선물하기": "카카오톡 선물하기", "카카오톡 선물하기": "카카오톡 선물하기",
   "카카오(예스24)": "카카오톡 선물하기",
@@ -1060,11 +1084,14 @@ const SHEET_STORE_MAP = {
   "예스24": "예스24", "교보": "교보문고", "교보문고": "교보문고", "알라딘": "알라딘"
 };
 let SHEET_ROWS = [];
-function sheetDate(s) { // "7/8" → "2026-07-08"
-  const m = String(s || "").trim().match(/^(\d{1,2})\/(\d{1,2})$/);
-  if (!m) return null;
+function sheetDate(s) { // 여러 형식 허용: "7/8", "2026-07-08", "7/8/2026" → "2026-07-08"
+  const t = String(s || "").trim();
   const p = n => String(n).padStart(2, "0");
-  return "2026-" + p(m[1]) + "-" + p(m[2]);
+  let m;
+  if ((m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return m[1] + "-" + p(m[2]) + "-" + p(m[3]);        // ISO
+  if ((m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return m[3] + "-" + p(m[1]) + "-" + p(m[2]);      // M/D/YYYY
+  if ((m = t.match(/^(\d{1,2})\/(\d{1,2})$/))) return "2026-" + p(m[1]) + "-" + p(m[2]);                  // M/D
+  return null;
 }
 function parseSheetCSV(text) {
   const out = [];
