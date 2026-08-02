@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="guide-mkt50-streak">
+<meta name="tracker-build" content="guide-mkt50-reviewfix">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -995,7 +995,7 @@ function refreshPurchase() {
           <div class="pg-note" style="color:${defColor};font-weight:600">${defStatus}</div>
         </div>
         <div class="pg-cell">
-          <div class="pg-lbl">리뷰 (진짜 지렛대)</div>
+          <div class="pg-lbl">리뷰 (전환 도우미·간접)</div>
           <div class="pg-val" style="color:${reviewColor}">${rv != null ? nf(rv) : "—"}<span>개</span></div>
           <div class="pg-note" style="color:${reviewColor}">${reviewNote}</div>
         </div>
@@ -1011,7 +1011,7 @@ function refreshPurchase() {
         <span style="display:inline-block;margin-left:6px;font-weight:700;color:#fff;background:${mktColor};border-radius:999px;padding:2px 9px;font-size:11px;">${mktStreakLabel}</span>
         <span style="color:#aaa"> · 목표 50위 장기 유지</span>
       </div>
-      <div class="pg-cap">목표를 <b>세부 카테고리(UX/UI·웹·디자인) 1위 방어 + 마케팅/세일즈 50위 + 리뷰 유입</b>으로 잡았습니다. 구매는 방어용으로 하루 1~2권만, 순위를 올리는 진짜 힘은 <b>리뷰·유기 트래픽</b>입니다. <span style="color:#aaa">${econNote}</span></div>`;
+      <div class="pg-cap">목표를 <b>세부 카테고리(UX/UI·웹·디자인) 1위 방어 + 마케팅/세일즈 50위 + 리뷰 유입</b>으로 잡았습니다. 순위의 직접 동력은 <b>유기 판매 속도(트래픽)</b>이고, 리뷰는 그 트래픽의 <b>구매 전환</b>을 높여 간접 기여합니다(랭킹 공식엔 안 들어감). <span style="color:#aaa">${econNote}</span></div>`;
   }
 
   // 사람별 필터(전체/한성희/신행철) — 이 리스트에만 적용, 위 카드·차트·가이드는 전체 기준 유지
