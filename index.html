@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="guide-mkt50-reviewfix">
+<meta name="tracker-build" content="impact-view">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -310,6 +310,14 @@ function render(H) {
     }
     MKT_TOP50_STREAK = streak;
   }
+  // 날짜별 순위 맵 (구매→순위 반응 분석용)
+  RANK_BY_DATE = {};
+  for (const h of H) {
+    const d = (h.ts || "").slice(0, 10);
+    if (!d) continue;
+    const yy = h.yes24 || {};
+    RANK_BY_DATE[d] = { mkt: yy.mkt_rank ?? null, econ: yy.econ_rank ?? null, si: yy.sales_index ?? null };
+  }
   const pre = H.length > 1 ? H[H.length - 2] : {};
   const days = Math.floor((new Date(cur.ts) - new Date(BOOK.pubdate + "T00:00:00+09:00")) / 864e5);
   const labels = H.map(h => fmtTs(h.ts));
@@ -558,6 +566,9 @@ function render(H) {
   <h2>순위 유지 가이드 <span>세부 카테고리 방어 + 리뷰 유입</span></h2>
   <div class="pguide" id="p-guide"></div>
 
+  <h2>구매 → 순위 반응 <span>몰아산 날의 전후 순위 변화 (테스트 측정)</span></h2>
+  <div id="p-impact"></div>
+
   <h2>일별 구매 권수</h2>
   <div class="panel"><div class="chartbox"><canvas id="c_purchase"></canvas></div></div>
 
@@ -782,6 +793,7 @@ let LATEST_ECON = null; // 최신 예스24 경제경영 종합 순위 (참고용
 let LATEST_UXUI = null, LATEST_WEB = null, LATEST_DESIGN = null, LATEST_MKT = null;
 let LATEST_REVIEWS = null, REVIEWS_7AGO = null;
 let MKT_TOP50_STREAK = 0; // 마케팅/세일즈가 50위 내를 유지한 연속 수집일수
+let RANK_BY_DATE = {}; // { "2026-08-01": {mkt, econ, si} } — 구매→순위 반응 분석용
 let P_TABLE_FILTER = "전체"; // 구매 이력 리스트 사람별 필터: 전체 / 한성희 / 신행철
 
 // 항상 표시할 구매자(데이터 없어도 0권으로 노출) + 색상
@@ -1012,6 +1024,46 @@ function refreshPurchase() {
         <span style="color:#aaa"> · 목표 50위 장기 유지</span>
       </div>
       <div class="pg-cap">목표를 <b>세부 카테고리(UX/UI·웹·디자인) 1위 방어 + 마케팅/세일즈 50위 + 리뷰 유입</b>으로 잡았습니다. 순위의 직접 동력은 <b>유기 판매 속도(트래픽)</b>이고, 리뷰는 그 트래픽의 <b>구매 전환</b>을 높여 간접 기여합니다(랭킹 공식엔 안 들어감). <span style="color:#aaa">${econNote}</span></div>`;
+  }
+
+  // 구매 → 순위 반응: 구매일별 권수 + 그 전날(D-1) 대비 다음날(D+1) 마케팅/경제경영 순위 변화
+  const impEl = document.getElementById("p-impact");
+  if (impEl) {
+    const byDate = {};
+    rows.forEach(r => { if (!r.date) return; byDate[r.date] = (byDate[r.date] || 0) + (+r.qty || 0); });
+    const dts = Object.keys(byDate).filter(d => byDate[d] > 0).sort((a, b) => a < b ? 1 : -1);
+    const dShift = (s, n) => { const p = s.split("-").map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)).toISOString().slice(0, 10); };
+    const rk = (s, key) => { const o = RANK_BY_DATE[s]; return o && o[key] != null ? o[key] : null; };
+    const after = (s, key) => { let v = rk(dShift(s, 1), key); if (v == null) v = rk(dShift(s, 2), key); return v; };
+    const cell = (before, aft) => {
+      if (before == null && aft == null) return `<span style="color:#bbb">—</span>`;
+      if (before == null || aft == null) return `${before ?? "—"}→${aft ?? "—"}`;
+      const d = before - aft; // 양수면 순위 상승(숫자 작아짐)
+      const c = d > 0 ? "#0a7f3f" : d < 0 ? "#c0392b" : "#888";
+      const ar = d > 0 ? "▲" : d < 0 ? "▼" : "–";
+      return `${before}→${aft} <b style="color:${c}">${ar}${Math.abs(d)}</b>`;
+    };
+    if (!dts.length) {
+      impEl.className = "";
+      impEl.innerHTML = `<div class="pempty">구매 기록이 쌓이면 여기서 그날의 순위 반응을 보여줍니다.</div>`;
+    } else {
+      impEl.className = "tablewrap";
+      impEl.innerHTML =
+        `<table><thead><tr><th>구매일</th><th>구매</th><th>마케팅/세일즈 (전→후)</th><th>경제경영 (전→후)</th><th>판매지수(후)</th></tr></thead><tbody>` +
+        dts.slice(0, 16).map(d => {
+          const spike = byDate[d] >= 5;
+          const siA = after(d, "si");
+          return `<tr${spike ? ' style="background:#fff8e6"' : ''}>
+            <td>${d}${spike ? ' <span style="font-size:10px;color:#b26a00;font-weight:700">몰아</span>' : ''}</td>
+            <td>${nf(byDate[d])}권</td>
+            <td style="text-align:left">${cell(rk(dShift(d, -1), "mkt"), after(d, "mkt"))}</td>
+            <td style="text-align:left">${cell(rk(dShift(d, -1), "econ"), after(d, "econ"))}</td>
+            <td>${siA != null ? nf(siA) : "—"}</td>
+          </tr>`;
+        }).join("") +
+        `</tbody></table>
+        <div class="pg-cap" style="margin-top:8px">전(구매 전날)→후(구매 다음날, 없으면 다다음날) 순위 · <b style="color:#0a7f3f">▲상승</b>·<b style="color:#c0392b">▼하락</b> · 노란 줄=5권 이상 몰아산 날 · 예스24 순위 갱신 지연으로 반응이 하루 밀릴 수 있음</div>`;
+    }
   }
 
   // 사람별 필터(전체/한성희/신행철) — 이 리스트에만 적용, 위 카드·차트·가이드는 전체 기준 유지
