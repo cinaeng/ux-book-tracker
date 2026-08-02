@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="purchase-buyers-kakao">
+<meta name="tracker-build" content="buyer-filter-sheetF">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -563,7 +563,8 @@ function render(H) {
   <div class="note">
     <b>서로 공유하려면 → 구글시트에 입력</b><br>
     아래 공용 구글시트에 한 줄 추가하면 <b>성희·행철 두 사람 모두</b> 이 대시보드에서 볼 수 있습니다(자동 동기화).
-    열 순서는 <b>주문일 · 도착일 · 서점 · 수량 · 구매자</b>이고, 날짜는 <code>8/2</code>, 구매자엔 본인 이름(한성희/신행철)을 적으면 됩니다.
+    칸 순서는 <b>주문일 · 도착일 · 주문처 · 주문권수 · (메모) · 구매자</b>입니다. 날짜는 <code>8/2</code> 형식,
+    <b>맨 끝 칸(F열=구매자)</b>에 본인 이름(한성희/신행철)을 적으면 됩니다. 비워두면 한성희로 처리됩니다.
     <a class="pnote-btn" href="https://docs.google.com/spreadsheets/d/1pJLy9cvkYcC7sns9yP4zCgXZyLIyIw9H1QPNfRfssuM/edit?gid=1657306611" target="_blank" rel="noopener">📝 공용 구글시트 열기</a>
     <br><br>
     <b>위 “구매 기록 추가” 폼</b>은 <b>이 브라우저에만</b> 저장되는 개인 메모용입니다(다른 사람에겐 안 보임).
@@ -1075,8 +1076,9 @@ function parseSheetCSV(text) {
     if (!qty || qty < 1) continue;
     const raw = (cols[2] || "").trim();
     const store = SHEET_STORE_MAP[raw] || raw || "기타";
-    // 5번째 칸(구매자)이 있으면 그 이름으로, 없으면 기존 데이터 호환을 위해 한성희로.
-    const buyer = (cols[4] || "").trim() || SHEET_BUYER;
+    // 6번째 칸(F열=구매자)에 이름이 있으면 그 사람 것으로, 없으면 한성희로.
+    // (5번째 칸 E열은 한성희 님이 쓰는 메모칸이라 건드리지 않는다)
+    const buyer = (cols[5] || "").trim() || SHEET_BUYER;
     idx++;
     out.push({ id: "sheet_" + date + "_" + idx, date, arrival: sheetDate(cols[1]), store, buyer, qty, amount: qty * 15300 });
   }
