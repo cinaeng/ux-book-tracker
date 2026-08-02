@@ -812,7 +812,7 @@
     }
   },
   {
-    "ts": "2026-08-02T05:04:38.315+09:00",
+    "ts": "2026-08-02T11:56:01.128+09:00",
     "yes24": {
       "econ_rank": null,
       "mkt_rank": 32,
@@ -825,8 +825,8 @@
       "rating": 10
     },
     "aladin": {
-      "sales_point": 210,
-      "weekly_rank": 27,
+      "sales_point": 200,
+      "weekly_rank": 25,
       "weekly_label": "광고/홍보/PR",
       "reviews": 0,
       "rating": null,
