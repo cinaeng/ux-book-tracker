@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="sheet-write">
+<meta name="tracker-build" content="guide-outofrange">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -916,15 +916,18 @@ function refreshPurchase() {
 
     // 실제 예스24 경제경영 순위를 반영해 권장량을 조정한다.
     // (창 유지만으론 순위 하락을 못 잡는다 — 목표선 100위에서 벗어날수록 더 산다)
+    // ★ 핵심: 순위권 밖(econ_rank 없음)은 '측정 안 됨'이 아니라 '최악'이다.
+    //   판매지수가 높아도 순위 밖이면 밴드 로직을 무시하고 최대 상향한다.
     let rankLine = "";
     const r = LATEST_ECON;
-    if (r != null) {
-      if (r > 150) { recToday = P_DAILY_CAP; statusColor = "#c0392b"; rankLine = `경제경영 <b>${nf(r)}위</b> — 100위권 밖, 회복 위해 상향 필요`; }
-      else if (r > 100) { recToday = Math.max(recToday, 3); statusColor = "#c0392b"; rankLine = `경제경영 <b>${nf(r)}위</b> — 100위 회복 위해 상향`; }
-      else if (r > 85) { recToday = Math.max(recToday, 3); rankLine = `경제경영 <b>${nf(r)}위</b> — 100위 근접, 약간 상향`; }
-      else if (r <= 60) { recToday = Math.min(recToday, 1); rankLine = `경제경영 <b>${nf(r)}위</b> — 여유, 하향 가능`; }
-      else { rankLine = `경제경영 <b>${nf(r)}위</b> — 방어선 안, 페이스 유지`; }
-    }
+    if (r == null) {
+      recToday = P_DAILY_CAP; statusColor = "#c0392b"; statusText = "순위권 밖 — 회복 시급";
+      rankLine = `경제경영 <b>순위권 밖(100위+)</b> — 판매지수는 높아도 순위 밖. 최근 판매속도를 올려야 회복 (며칠간 집중 구매)`;
+    } else if (r > 150) { recToday = P_DAILY_CAP; statusColor = "#c0392b"; statusText = "순위 급락 — 상향 필요"; rankLine = `경제경영 <b>${nf(r)}위</b> — 100위권 밖, 회복 위해 상향 필요`; }
+    else if (r > 100) { recToday = Math.max(recToday, 3); statusColor = "#c0392b"; statusText = "100위 밖 — 상향 필요"; rankLine = `경제경영 <b>${nf(r)}위</b> — 100위 회복 위해 상향`; }
+    else if (r > 85) { recToday = Math.max(recToday, 3); rankLine = `경제경영 <b>${nf(r)}위</b> — 100위 근접, 약간 상향`; }
+    else if (r <= 60) { recToday = Math.min(recToday, 1); rankLine = `경제경영 <b>${nf(r)}위</b> — 여유, 하향 가능`; }
+    else { rankLine = `경제경영 <b>${nf(r)}위</b> — 방어선 안, 페이스 유지`; }
 
     let recNote;
     if (recToday === 0) recNote = "오늘은 안 사도 밴드 유지";
