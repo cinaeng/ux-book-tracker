@@ -6,7 +6,7 @@
 <title>UX의 언어들 — 서점 순위 트래커</title>
 <meta name="description" content="도서 「UX의 언어들」의 예스24·교보문고 베스트셀러 순위 트래커">
 <!-- 구매내역: 한성희·신행철 구매자별 집계, 카카오톡 선물하기 포함 -->
-<meta name="tracker-build" content="guide-subcat-reviews">
+<meta name="tracker-build" content="guide-mkt50-streak">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📚</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <style>
@@ -299,6 +299,16 @@ function render(H) {
       if (d < bestDiff) { bestDiff = d; best = h.yes24.reviews; }
     }
     REVIEWS_7AGO = best;
+  }
+  // 마케팅/세일즈 50위 내 연속 유지 일수 (최신부터 거꾸로 세다가 50위 밖이면 중단)
+  {
+    let streak = 0;
+    for (let i = H.length - 1; i >= 0; i--) {
+      const m = H[i].yes24 && H[i].yes24.mkt_rank;
+      if (m != null && m <= 50) streak++;
+      else break;
+    }
+    MKT_TOP50_STREAK = streak;
   }
   const pre = H.length > 1 ? H[H.length - 2] : {};
   const days = Math.floor((new Date(cur.ts) - new Date(BOOK.pubdate + "T00:00:00+09:00")) / 864e5);
@@ -771,6 +781,7 @@ let LATEST_ECON = null; // 최신 예스24 경제경영 종합 순위 (참고용
 // 세부 카테고리 방어 + 리뷰 추적용 (가이드가 실제로 쓰는 값)
 let LATEST_UXUI = null, LATEST_WEB = null, LATEST_DESIGN = null, LATEST_MKT = null;
 let LATEST_REVIEWS = null, REVIEWS_7AGO = null;
+let MKT_TOP50_STREAK = 0; // 마케팅/세일즈가 50위 내를 유지한 연속 수집일수
 let P_TABLE_FILTER = "전체"; // 구매 이력 리스트 사람별 필터: 전체 / 한성희 / 신행철
 
 // 항상 표시할 구매자(데이터 없어도 0권으로 노출) + 색상
@@ -949,6 +960,23 @@ function refreshPurchase() {
     else if (worst <= 3) { recToday = 2; defStatus = "1~3위 — 1위 회복 위해 약간 상향"; defColor = "#b26a00"; }
     else { recToday = Math.min(P_DAILY_CAP, 3); defStatus = "세부권 이탈 — 상향 필요"; defColor = "#c0392b"; }
 
+    // 마케팅/세일즈 top-50 장기 방어 (목표). 35위를 넘어서면 미리 상향해 50위 여유를 지킨다.
+    const mkt = LATEST_MKT, MKT_TARGET = 50, MKT_WARN = 35;
+    if (mkt != null) {
+      if (mkt > MKT_TARGET) recToday = Math.max(recToday, 3);
+      else if (mkt > MKT_WARN) recToday = Math.max(recToday, 2);
+    }
+    const mktColor = mkt == null ? "#888" : mkt <= 20 ? "#0a7f3f" : mkt <= MKT_TARGET ? "#b26a00" : "#c0392b";
+    const mktStatus = mkt == null ? "데이터 없음"
+      : mkt <= 20 ? "50위 내 여유"
+      : mkt <= MKT_TARGET ? "50위 내 유지 중 (35위 넘으면 상향)"
+      : "50위 밖 — 상향 필요";
+    // 50위 내 연속 유지 기간 라벨 (일 + 대략 주)
+    const _wk = Math.floor(MKT_TOP50_STREAK / 7);
+    const mktStreakLabel = MKT_TOP50_STREAK > 0
+      ? `50위 내 ${nf(MKT_TOP50_STREAK)}일 연속${_wk >= 1 ? ` · 약 ${_wk}주` : ""}`
+      : "50위 밖";
+
     // 리뷰 유입 속도 (진짜 지렛대). 7일 증가분 vs 주 3개 목표.
     const rv = LATEST_REVIEWS, rvAdd = (rv != null && REVIEWS_7AGO != null) ? (rv - REVIEWS_7AGO) : null;
     let reviewColor, reviewNote;
@@ -977,7 +1005,13 @@ function refreshPurchase() {
           <div class="pg-note">${recNote} · 최근 7일 ${nf(last7)}권</div>
         </div>
       </div>
-      <div class="pg-cap">목표를 <b>세부 카테고리(UX/UI·웹·디자인) 1위 방어 + 리뷰 유입</b>으로 잡았습니다. 구매는 방어용으로 하루 1~2권만, 순위를 올리는 진짜 힘은 <b>리뷰·유기 트래픽</b>입니다. <span style="color:#aaa">${econNote}</span></div>`;
+      <div style="margin:12px 0 2px;padding:9px 12px;border:1px solid #e4e4e2;border-left:3px solid ${mktColor};border-radius:8px;background:#fafafa;font-size:12.5px;">
+        <b>마케팅/세일즈</b> <b style="color:${mktColor}">${mkt != null ? nf(mkt) + "위" : "—"}</b>
+        <span style="color:#888">· ${mktStatus}</span>
+        <span style="display:inline-block;margin-left:6px;font-weight:700;color:#fff;background:${mktColor};border-radius:999px;padding:2px 9px;font-size:11px;">${mktStreakLabel}</span>
+        <span style="color:#aaa"> · 목표 50위 장기 유지</span>
+      </div>
+      <div class="pg-cap">목표를 <b>세부 카테고리(UX/UI·웹·디자인) 1위 방어 + 마케팅/세일즈 50위 + 리뷰 유입</b>으로 잡았습니다. 구매는 방어용으로 하루 1~2권만, 순위를 올리는 진짜 힘은 <b>리뷰·유기 트래픽</b>입니다. <span style="color:#aaa">${econNote}</span></div>`;
   }
 
   // 사람별 필터(전체/한성희/신행철) — 이 리스트에만 적용, 위 카드·차트·가이드는 전체 기준 유지
