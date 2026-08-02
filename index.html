@@ -182,6 +182,14 @@
   .pg-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 5px; transition: width .2s; z-index: 1; }
   .pg-band { position: absolute; top: -2px; height: 13px; border-left: 2px solid #0a7f3f; border-right: 2px solid #0a7f3f; background: rgba(10,127,63,.10); z-index: 2; }
   .pg-cap { font-size: 10.5px; color: #aaa; line-height: 1.5; }
+
+  /* 구매 이력 사람별 필터 탭 */
+  .pfilter { display: flex; gap: 7px; margin: 0 0 11px; }
+  .pfilter button { font-family: inherit; cursor: pointer; font-size: 12.5px; font-weight: 600; padding: 6px 15px; border: 1px solid #ddd; border-radius: 999px; background: #fff; color: #888; transition: .12s; }
+  .pfilter button:hover { border-color: #bbb; color: #444; }
+  .pfilter button.on { background: #111; border-color: #111; color: #fff; }
+  .pnote-btn { display: inline-block; margin-top: 9px; font-size: 12px; font-weight: 600; padding: 7px 15px; border-radius: 999px; background: #0a7f3f; color: #fff; text-decoration: none; }
+  .pnote-btn:hover { background: #08682f; }
 </style>
 </head>
 <body>
@@ -545,12 +553,21 @@ function render(H) {
   </div>
 
   <h2>구매 이력 <span id="p-count"></span></h2>
+  <div class="pfilter" id="p-filter">
+    <button class="on" data-bf="전체">전체</button>
+    <button data-bf="한성희">한성희</button>
+    <button data-bf="신행철">신행철</button>
+  </div>
   <div id="p-tablewrap"></div>
 
   <div class="note">
-    <b>저장 방식</b> — 직접 입력한 기록은 <b>이 브라우저</b>에 저장됩니다(기기·브라우저가 바뀌면 보이지 않습니다).
-    영수증·주문내역 이미지는 채팅에 올려주시면 제가 읽어 <code>data/purchases.json</code>에 반영하며,
-    이렇게 넣은 기록은 자동 갱신되어 모든 기기에서 보입니다.<br>
+    <b>서로 공유하려면 → 구글시트에 입력</b><br>
+    아래 공용 구글시트에 한 줄 추가하면 <b>성희·행철 두 사람 모두</b> 이 대시보드에서 볼 수 있습니다(자동 동기화).
+    열 순서는 <b>주문일 · 도착일 · 서점 · 수량 · 구매자</b>이고, 날짜는 <code>8/2</code>, 구매자엔 본인 이름(한성희/신행철)을 적으면 됩니다.
+    <a class="pnote-btn" href="https://docs.google.com/spreadsheets/d/1pJLy9cvkYcC7sns9yP4zCgXZyLIyIw9H1QPNfRfssuM/edit?gid=1657306611" target="_blank" rel="noopener">📝 공용 구글시트 열기</a>
+    <br><br>
+    <b>위 “구매 기록 추가” 폼</b>은 <b>이 브라우저에만</b> 저장되는 개인 메모용입니다(다른 사람에겐 안 보임).
+    영수증·주문내역 이미지는 채팅에 올려주시면 제가 읽어 공용 기록에 반영합니다.<br>
     <b>집계 기준</b> — 합계·일별 차트는 <b>주문일</b> 기준입니다(판매 순위에 반영되는 시점). 도착일은 참고용으로만 저장됩니다.
   </div>
 
@@ -733,6 +750,7 @@ const pSaveLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } 
 const pLoadObj = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } };
 let pChart = null;
 let LATEST_ECON = null; // 최신 예스24 경제경영 종합 순위 (가이드 권장량 계산에 사용)
+let P_TABLE_FILTER = "전체"; // 구매 이력 리스트 사람별 필터: 전체 / 한성희 / 신행철
 
 // 항상 표시할 구매자(데이터 없어도 0권으로 노출) + 색상
 const KNOWN_BUYERS = ["한성희", "신행철"];
@@ -915,19 +933,25 @@ function refreshPurchase() {
       <div class="pg-cap">초록 구간이 목표 밴드 <b>${P_BAND_LO}~${P_BAND_HI}권</b> (TOP 100 · 하루 2권 기준) · 권장량은 <b>현재 예스24 경제경영 순위</b>를 반영해 자동 조정 · 몰아 사기 금지, 매일 얇게</div>`;
   }
 
+  // 사람별 필터(전체/한성희/신행철) — 이 리스트에만 적용, 위 카드·차트·가이드는 전체 기준 유지
+  const trows = (P_TABLE_FILTER === "전체") ? rows : rows.filter(r => (r.buyer || "미지정") === P_TABLE_FILTER);
+  const tqty = trows.reduce((s, r) => s + (+r.qty || 0), 0);
+
   const cEl = document.getElementById("p-count");
-  if (cEl) cEl.textContent = cnt ? `(${cnt}건)` : "";
+  if (cEl) cEl.textContent = trows.length
+    ? (P_TABLE_FILTER === "전체" ? `(${trows.length}건)` : `(${P_TABLE_FILTER} · ${trows.length}건 · ${nf(tqty)}권)`)
+    : "";
 
   const tw = document.getElementById("p-tablewrap");
   if (tw) {
-    if (!rows.length) {
+    if (!trows.length) {
       tw.className = "";
-      tw.innerHTML = `<div class="pempty">아직 기록이 없습니다. 위에서 직접 입력하거나, 영수증 이미지를 채팅에 올려주세요.</div>`;
+      tw.innerHTML = `<div class="pempty">${P_TABLE_FILTER === "전체" ? "아직 기록이 없습니다. 위에서 직접 입력하거나, 영수증 이미지를 채팅에 올려주세요." : P_TABLE_FILTER + " 님의 기록이 아직 없습니다."}</div>`;
     } else {
       tw.className = "tablewrap";
       tw.innerHTML =
         `<table><thead><tr><th>주문일</th><th>도착일</th><th>서점</th><th>구매자</th><th>수량</th><th>금액</th><th></th></tr></thead><tbody>` +
-        rows.map(r => `<tr>
+        trows.map(r => `<tr>
           <td>${r.date || "—"}</td>
           <td>${r.arrival || "—"}</td>
           <td style="text-align:left">${r.store || "—"}</td>
@@ -1007,6 +1031,13 @@ function mountPurchase() {
   if (cancelBtn) cancelBtn.onclick = closeEditModal;
   const modal = document.getElementById("p-modal");
   if (modal) modal.onclick = (e) => { if (e.target === modal) closeEditModal(); };
+  // 사람별 필터 탭(전체/한성희/신행철) — 리스트만 걸러 보여준다
+  document.querySelectorAll("#p-filter button").forEach(b => b.onclick = () => {
+    document.querySelectorAll("#p-filter button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    P_TABLE_FILTER = b.dataset.bf;
+    refreshPurchase();
+  });
   refreshPurchase();
 }
 function pLoadBase() {
@@ -1044,8 +1075,10 @@ function parseSheetCSV(text) {
     if (!qty || qty < 1) continue;
     const raw = (cols[2] || "").trim();
     const store = SHEET_STORE_MAP[raw] || raw || "기타";
+    // 5번째 칸(구매자)이 있으면 그 이름으로, 없으면 기존 데이터 호환을 위해 한성희로.
+    const buyer = (cols[4] || "").trim() || SHEET_BUYER;
     idx++;
-    out.push({ id: "sheet_" + date + "_" + idx, date, arrival: sheetDate(cols[1]), store, buyer: SHEET_BUYER, qty, amount: qty * 15300 });
+    out.push({ id: "sheet_" + date + "_" + idx, date, arrival: sheetDate(cols[1]), store, buyer, qty, amount: qty * 15300 });
   }
   return out;
 }
