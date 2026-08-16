@@ -1440,5 +1440,47 @@
       "reviews": 8,
       "rating": 10
     }
+  },
+  {
+    "ts": "2026-08-17T04:13:15.130+09:00",
+    "yes24": {
+      "econ_rank": null,
+      "mkt_rank": 65,
+      "ad_rank": 4,
+      "web_rank": 13,
+      "uxui_rank": 6,
+      "design_rank": 17,
+      "sales_index": 2664,
+      "reviews": 26,
+      "rating": 10
+    },
+    "aladin": {
+      "sales_point": 310,
+      "weekly_rank": 12,
+      "weekly_label": "광고/홍보/PR",
+      "reviews": 9,
+      "rating": null,
+      "design_rank": null,
+      "brand_rank": null,
+      "econ_rank": null,
+      "mkt_rank": null,
+      "designcraft_rank": null
+    },
+    "kyobo_online": {
+      "econ_weekly": null,
+      "econ_daily": null,
+      "it_daily": null,
+      "website_cat": null,
+      "uxui_cat": null
+    },
+    "kyobo_total": {
+      "econ_weekly": null,
+      "tech_weekly": null
+    },
+    "kyobo_meta": {
+      "badge_rank": null,
+      "reviews": 8,
+      "rating": 10
+    }
   }
 ]
