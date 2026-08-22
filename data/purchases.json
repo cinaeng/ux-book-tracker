@@ -1,83 +1,12 @@
 [
-  {
-    "id": "s20260713",
-    "date": "2026-07-13",
-    "arrival": "2026-07-15",
-    "store": "예스24 선물하기",
-    "buyer": "신행철",
-    "qty": 1,
-    "amount": 15300
-  },
-  {
-    "id": "s20260715",
-    "date": "2026-07-15",
-    "arrival": "2026-07-18",
-    "store": "예스24",
-    "buyer": "신행철",
-    "qty": 2,
-    "amount": 30600
-  },
-  {
-    "id": "s20260728",
-    "date": "2026-07-28",
-    "arrival": "2026-07-28",
-    "store": "예스24 선물하기",
-    "buyer": "신행철",
-    "qty": 5,
-    "amount": 76500
-  },
-  {
-    "id": "k20260710",
-    "date": "2026-07-10",
-    "arrival": null,
-    "store": "카카오톡 선물하기",
-    "buyer": "신행철",
-    "qty": 7,
-    "amount": 107100
-  },
-  {
-    "id": "k20260712",
-    "date": "2026-07-12",
-    "arrival": null,
-    "store": "카카오톡 선물하기",
-    "buyer": "신행철",
-    "qty": 2,
-    "amount": 30600
-  },
-  {
-    "id": "k20260715",
-    "date": "2026-07-15",
-    "arrival": null,
-    "store": "카카오톡 선물하기",
-    "buyer": "신행철",
-    "qty": 8,
-    "amount": 122400
-  },
-  {
-    "id": "k20260726",
-    "date": "2026-07-26",
-    "arrival": null,
-    "store": "카카오톡 선물하기",
-    "buyer": "신행철",
-    "qty": 3,
-    "amount": 45900
-  },
-  {
-    "id": "s20260801",
-    "date": "2026-08-01",
-    "arrival": null,
-    "store": "예스24 선물하기",
-    "buyer": "신행철",
-    "qty": 2,
-    "amount": 30600
-  },
-  {
-    "id": "s20260802",
-    "date": "2026-08-02",
-    "arrival": null,
-    "store": "예스24 선물하기",
-    "buyer": "신행철",
-    "qty": 4,
-    "amount": 61200
-  }
+  { "id": "s20260713", "date": "2026-07-13", "arrival": "2026-07-15", "store": "예스24 선물하기", "buyer": "신행철", "qty": 1, "amount": 15300 },
+  { "id": "s20260715", "date": "2026-07-15", "arrival": "2026-07-18", "store": "예스24", "buyer": "신행철", "qty": 2, "amount": 30600 },
+  { "id": "s20260728", "date": "2026-07-28", "arrival": "2026-07-28", "store": "예스24 선물하기", "buyer": "신행철", "qty": 5, "amount": 76500 },
+  { "id": "k20260710", "date": "2026-07-10", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 7, "amount": 107100 },
+  { "id": "k20260712", "date": "2026-07-12", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 2, "amount": 30600 },
+  { "id": "k20260715", "date": "2026-07-15", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 8, "amount": 122400 },
+  { "id": "k20260726", "date": "2026-07-26", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 3, "amount": 45900 },
+  { "id": "s20260801", "date": "2026-08-01", "arrival": null, "store": "예스24 선물하기", "buyer": "신행철", "qty": 2, "amount": 30600 },
+  { "id": "s20260802", "date": "2026-08-02", "arrival": null, "store": "예스24 선물하기", "buyer": "신행철", "qty": 4, "amount": 61200 },
+  { "id": "k20260822", "date": "2026-08-22", "arrival": null, "store": "카카오톡 선물하기", "buyer": "신행철", "qty": 6, "amount": 91800 }
 ]
