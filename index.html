@@ -965,7 +965,7 @@ function refreshPurchase() {
       `<span style="display:inline-block;font-size:11px;font-weight:700;color:${chipColor(s.r)};background:#fff;border:1px solid #e4e4e2;border-radius:6px;padding:2px 8px;margin:2px 4px 0 0;">${s.name} ${nf(s.r)}위</span>`
     ).join("");
 
-    // 권장 구매: 세부 카테고리 방어 기준으로 '가볍게'. (경제경영 회복용 대량구매 안 함)
+    // 일일 방어 목표: 세부 카테고리 순위 유지에 필요한 하루 판매량(대리지표). 캠페인·선물 등 충당 방법은 사용자가 판단.
     let recToday, defStatus, defColor;
     if (worst == null) { recToday = 1; defStatus = "세부 순위 데이터 없음"; defColor = "#888"; }
     else if (worst <= 1) { recToday = 1; defStatus = "세부 1위 방어 중 — 페이스 유지"; defColor = "#0a7f3f"; }
@@ -996,7 +996,7 @@ function refreshPurchase() {
     else if (rvAdd < REVIEW_WK_TARGET) { reviewColor = "#c0392b"; reviewNote = `7일 +${rvAdd} — 정체, 리뷰 요청 필요 (목표 +${REVIEW_WK_TARGET}/주)`; }
     else { reviewColor = "#0a7f3f"; reviewNote = `7일 +${rvAdd} — 양호 (목표 +${REVIEW_WK_TARGET}/주)`; }
 
-    const recNote = recToday <= 1 ? "매일 1권, 몰아 사기 금지" : "세부 1위 회복까지 며칠 상향";
+    const recNote = recToday <= 1 ? "방어 최소선 · 캠페인/선물로 충당(판단은 직접)" : "세부 1위 회복까지 상향 · 캠페인/선물로 충당";
     const econNote = LATEST_ECON == null ? "경제경영 종합: 순위권 밖(참고용, 목표 아님)" : `경제경영 종합: ${nf(LATEST_ECON)}위(참고용, 목표 아님)`;
 
     gEl.innerHTML =
@@ -1012,9 +1012,9 @@ function refreshPurchase() {
           <div class="pg-note" style="color:${reviewColor}">${reviewNote}</div>
         </div>
         <div class="pg-cell">
-          <div class="pg-lbl">오늘 권장 구매</div>
-          <div class="pg-val">${nf(recToday)}<span>권</span></div>
-          <div class="pg-note">${recNote} · 최근 7일 ${nf(last7)}권</div>
+          <div class="pg-lbl">순위 방어 일일 목표</div>
+          <div class="pg-val">${nf(recToday)}<span>권/일</span></div>
+          <div class="pg-note">${recNote} · 최근 7일 알려진 구매 ${nf(last7)}권 (성과 계산 시 차감)</div>
         </div>
       </div>
       <div style="margin:12px 0 2px;padding:9px 12px;border:1px solid #e4e4e2;border-left:3px solid ${mktColor};border-radius:8px;background:#fafafa;font-size:12.5px;">
