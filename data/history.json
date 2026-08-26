@@ -1820,7 +1820,7 @@
     }
   },
   {
-    "ts": "2026-08-26T22:41:54.915+09:00",
+    "ts": "2026-08-26T22:50:44.175+09:00",
     "yes24": {
       "econ_rank": 296,
       "mkt_rank": 22,
@@ -1833,10 +1833,10 @@
       "rating": 10
     },
     "aladin": {
-      "sales_point": 200,
+      "sales_point": null,
       "weekly_rank": null,
       "weekly_label": null,
-      "reviews": 9,
+      "reviews": 0,
       "rating": null,
       "design_rank": null,
       "brand_rank": null,
