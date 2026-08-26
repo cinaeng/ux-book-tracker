@@ -1002,12 +1002,10 @@ function refreshPurchase() {
     // 50위 이탈 예상 시점 — 마케팅/세일즈 최근 추세(순위/일)로 선형 예측
     let breachVal, breachNote, breachColor;
     {
-      const ser = [];
-      for (const h of H) {
-        const m = h.yes24 && h.yes24.mkt_rank;
-        if (m == null) continue;
-        ser.push({ t: new Date((h.ts || "").slice(0, 10) + "T00:00:00").getTime() / 864e5, r: m });
-      }
+      const ser = Object.keys(RANK_BY_DATE || {})
+        .filter(d => RANK_BY_DATE[d] && RANK_BY_DATE[d].mkt != null)
+        .sort()
+        .map(d => ({ t: new Date(d + "T00:00:00").getTime() / 864e5, r: RANK_BY_DATE[d].mkt }));
       const rec = ser.slice(-7);
       if (LATEST_MKT == null || LATEST_MKT > 50) {
         breachVal = "이미 이탈"; breachColor = "#c0392b";
@@ -1026,7 +1024,7 @@ function refreshPurchase() {
           breachNote = LATEST_MKT <= 20 ? "여유 있게 50위 내 · 조치 불필요" : "하락 추세 아님 · 조치 불필요";
         } else {
           const daysLeft = Math.max(0, Math.ceil((50 - LATEST_MKT) / slope));
-          const when = new Date(cur.ts); when.setDate(when.getDate() + daysLeft);
+          const when = new Date(); when.setHours(0, 0, 0, 0); when.setDate(when.getDate() + daysLeft);
           const wStr = (when.getMonth() + 1) + "/" + when.getDate();
           breachColor = daysLeft <= 3 ? "#c0392b" : daysLeft <= 7 ? "#b26a00" : "#0a7f3f";
           breachVal = daysLeft > 60 ? "60일+ 여유" : ("약 " + daysLeft + "일 후");
