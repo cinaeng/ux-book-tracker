@@ -2576,7 +2576,7 @@
     }
   },
   {
-    "ts": "2026-09-13T06:07:32.563+09:00",
+    "ts": "2026-09-13T21:11:40.457+09:00",
     "yes24": {
       "econ_rank": null,
       "mkt_rank": 91,
@@ -2589,7 +2589,7 @@
       "rating": 10
     },
     "aladin": {
-      "sales_point": 385,
+      "sales_point": 345,
       "weekly_rank": 26,
       "weekly_label": "광고/홍보/PR",
       "reviews": 9,
@@ -2613,8 +2613,8 @@
     },
     "kyobo_meta": {
       "badge_rank": null,
-      "reviews": 0,
-      "rating": null
+      "reviews": 8,
+      "rating": 10
     }
   }
 ]
